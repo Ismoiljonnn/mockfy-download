@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
@@ -36,14 +37,21 @@ class _ExamScreenState extends State<ExamScreen> {
 
   String get _base => '/api/attempts/${widget.attemptId}';
 
+  // which half of each part is showing: 0 = passage / task, 1 = questions / your answer
+  final Map<int, ValueNotifier<int>> _view = {};
+  ValueNotifier<int> _viewOf(int part) => _view.putIfAbsent(part, () => ValueNotifier<int>(0));
+
   @override
   void initState() {
     super.initState();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     _startSection();
   }
 
   @override
   void dispose() {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    for (final v in _view.values) { v.dispose(); }
     _clock?.cancel();
     _saveSoon?.cancel();
     if (_dirty) _save();
@@ -155,6 +163,43 @@ class _ExamScreenState extends State<ExamScreen> {
     return ok == true;
   }
 
+  void _numbers(BuildContext ctx, List<Map> parts, String key) {
+    final tabs = DefaultTabController.of(ctx);
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (sheet) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: SingleChildScrollView(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              for (var pi = 0; pi < parts.length; pi++) ...[
+                Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Text('${parts[pi]['title']}', style: const TextStyle(fontWeight: FontWeight.w800))),
+                Wrap(spacing: 8, runSpacing: 8, children: [
+                  for (final g in (parts[pi]['groups'] as List? ?? []).cast<Map>())
+                    for (final q in (g['questions'] as List? ?? []).cast<Map>())
+                      _NumberChip(
+                        label: q['numbers'] is List ? (q['numbers'] as List).join('–') : '${q['number']}',
+                        answered: (_answers['${q['id']}'] ?? '').isNotEmpty,
+                        onTap: () {
+                          Navigator.pop(sheet);
+                          tabs.animateTo(pi);
+                          _viewOf(pi).value = 1;                    // Reading: show the questions half
+                          Future.delayed(const Duration(milliseconds: 400), () {
+                            final c = _key('${q['id']}').currentContext;
+                            if (c != null) Scrollable.ensureVisible(c, alignment: .2, duration: const Duration(milliseconds: 300));
+                          });
+                        },
+                      ),
+                ]),
+              ],
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+
   String get _clockText {
     final m = _left ~/ 60, s = _left % 60;
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
@@ -202,28 +247,30 @@ class _ExamScreenState extends State<ExamScreen> {
                 child: Text(_clockText, style: TextStyle(fontWeight: FontWeight.w700, fontFeatures: const [FontFeature.tabularFigures()],
                     color: _left < 300 ? C.red : null)),
               ),
+              if (key == 'listening' || key == 'reading')
+                Builder(builder: (ctx) => IconButton(
+                  tooltip: 'Questions',
+                  icon: const Icon(Icons.grid_view_rounded),
+                  onPressed: () => _numbers(ctx, parts, key),
+                )),
               TextButton(onPressed: _submitting ? null : () => _submit(), child: const Text('Finish')),
             ],
             bottom: parts.length > 1
                 ? TabBar(isScrollable: parts.length > 3, tabs: [for (final p in parts) Tab(text: '${p['title']}')])
                 : null,
           ),
-          body: Column(children: [
-            Expanded(
-              child: TabBarView(children: [
-                for (final p in parts)
-                  _PartView(
-                    key: PageStorageKey('${p['title']}'),
-                    sectionKey: key,
-                    part: p.cast<String, dynamic>(),
-                    answers: _answers,
-                    onAnswer: _answer,
-                    attemptBase: _base,
-                    keyFor: _key,
-                  ),
-              ]),
-            ),
-            if (key == 'listening' || key == 'reading') _NumberBar(parts: parts, answers: _answers, keyFor: _key),
+          body: TabBarView(children: [
+            for (var i = 0; i < parts.length; i++)
+              _PartView(
+                key: ValueKey('$key-$idx-$i'),
+                sectionKey: key,
+                part: parts[i].cast<String, dynamic>(),
+                answers: _answers,
+                onAnswer: _answer,
+                attemptBase: _base,
+                keyFor: _key,
+                view: _viewOf(i),
+              ),
           ]),
         ),
       ),
@@ -231,30 +278,115 @@ class _ExamScreenState extends State<ExamScreen> {
   }
 }
 
-class _PartView extends StatelessWidget {
-  const _PartView({super.key, required this.sectionKey, required this.part, required this.answers, required this.onAnswer, required this.attemptBase, required this.keyFor});
+class _PartView extends StatefulWidget {
+  const _PartView({super.key, required this.sectionKey, required this.part, required this.answers, required this.onAnswer,
+      required this.attemptBase, required this.keyFor, required this.view});
   final GlobalKey Function(String) keyFor;
   final String sectionKey;
   final Map<String, dynamic> part;
   final Map<String, String> answers;
   final void Function(String, String?) onAnswer;
   final String attemptBase;
+  final ValueNotifier<int> view;
+  @override
+  State<_PartView> createState() => _PartViewState();
+}
+
+class _PartViewState extends State<_PartView> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  Widget _scroll(List<Widget> children) => SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
+      );
+
+  List<Widget> _questions() => [
+        for (final g in (widget.part['groups'] as List? ?? []).cast<Map>())
+          _Group(group: g.cast<String, dynamic>(), answers: widget.answers, onAnswer: widget.onAnswer, keyFor: widget.keyFor),
+      ];
+
+  Widget _intro(BuildContext context) => (widget.part['intro'] ?? '').toString().isEmpty
+      ? const SizedBox.shrink()
+      : Padding(padding: const EdgeInsets.only(bottom: 12), child: Text('${widget.part['intro']}', style: TextStyle(color: Theme.of(context).hintColor)));
 
   @override
   Widget build(BuildContext context) {
-    final groups = (part['groups'] as List? ?? []).cast<Map>();
-    final hint = Theme.of(context).hintColor;
-    return ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 40), children: [
-      if ((part['intro'] ?? '').toString().isNotEmpty)
-        Padding(padding: const EdgeInsets.only(bottom: 12), child: Text('${part['intro']}', style: TextStyle(color: hint))),
-      if (part['recording'] is Map) _Recording(recording: (part['recording'] as Map).cast<String, dynamic>()),
-      if (part['passage'] is Map) _Passage(passage: (part['passage'] as Map).cast<String, dynamic>()),
-      if (part['task'] is Map) _WritingTask(task: (part['task'] as Map).cast<String, dynamic>(), answers: answers, onAnswer: onAnswer),
-      if (part['prompts'] is List)
-        for (final pr in (part['prompts'] as List).cast<Map>())
-          _SpeakingPrompt(prompt: pr.cast<String, dynamic>(), attemptBase: attemptBase),
-      for (final g in groups) _Group(group: g.cast<String, dynamic>(), answers: answers, onAnswer: onAnswer, keyFor: keyFor),
-    ]);
+    super.build(context);
+    final part = widget.part;
+    switch (widget.sectionKey) {
+      case 'reading':
+        return _TwoHalves(view: widget.view, labels: const ['Passage', 'Questions'], icons: const [Icons.article_rounded, Icons.checklist_rounded], halves: [
+          _scroll([_intro(context), if (part['passage'] is Map) _Passage(passage: (part['passage'] as Map).cast<String, dynamic>())]),
+          _scroll(_questions()),
+        ]);
+      case 'writing':
+        final task = (part['task'] as Map?)?.cast<String, dynamic>() ?? {};
+        return _TwoHalves(view: widget.view, labels: const ['Task', 'Write'], icons: const [Icons.description_rounded, Icons.edit_rounded], halves: [
+          _scroll([_intro(context), _WritingBrief(task: task)]),
+          _WritingAnswer(task: task, answers: widget.answers, onAnswer: widget.onAnswer),
+        ]);
+      case 'listening':
+        return Column(children: [
+          if (part['recording'] is Map)
+            Padding(padding: const EdgeInsets.fromLTRB(16, 10, 16, 0), child: _Recording(recording: (part['recording'] as Map).cast<String, dynamic>())),
+          Expanded(child: _scroll([_intro(context), ..._questions()])),
+        ]);
+      default:
+        return _scroll([
+          _intro(context),
+          if (part['prompts'] is List)
+            for (final pr in (part['prompts'] as List).cast<Map>()) _SpeakingPrompt(prompt: pr.cast<String, dynamic>(), attemptBase: widget.attemptBase),
+        ]);
+    }
+  }
+}
+
+/// Two halves of a part with tabs at the bottom (Reading: Passage | Questions; Writing: Task | Write).
+class _TwoHalves extends StatelessWidget {
+  const _TwoHalves({required this.view, required this.labels, required this.icons, required this.halves});
+  final ValueNotifier<int> view;
+  final List<String> labels;
+  final List<IconData> icons;
+  final List<Widget> halves;
+  @override
+  Widget build(BuildContext context) => ValueListenableBuilder<int>(
+        valueListenable: view,
+        builder: (context, v, _) => Column(children: [
+          Expanded(child: IndexedStack(index: v, children: halves)),
+          NavigationBar(
+            height: 60,
+            selectedIndex: v,
+            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+            onDestinationSelected: (i) => view.value = i,
+            destinations: [for (var i = 0; i < 2; i++) NavigationDestination(icon: Icon(icons[i]), label: labels[i])],
+          ),
+        ]),
+      );
+}
+
+class _NumberChip extends StatelessWidget {
+  const _NumberChip({required this.label, required this.answered, required this.onTap});
+  final String label;
+  final bool answered;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Material(
+      color: answered ? C.accent : (dark ? Colors.white.withValues(alpha: .08) : const Color(0xFF141413).withValues(alpha: .06)),
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 44, minHeight: 40),
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Text(label, style: TextStyle(fontWeight: FontWeight.w800, color: answered ? Colors.white : null)),
+        ),
+      ),
+    );
   }
 }
 
@@ -266,12 +398,11 @@ class _Passage extends StatelessWidget {
   Widget build(BuildContext context) {
     final paras = (passage['paragraphs'] as List? ?? []);
     return Card(
-      child: ExpansionTile(
-        initiallyExpanded: true,
-        shape: const Border(),
-        title: Text('${passage['title'] ?? 'Reading passage'}', style: const TextStyle(fontWeight: FontWeight.w700)),
-        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        children: [
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('${passage['title'] ?? 'Reading passage'}', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 12),
           for (final p in paras)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -281,7 +412,7 @@ class _Passage extends StatelessWidget {
                 TextSpan(text: p is Map ? '${p['text']}' : '$p'),
               ]), style: const TextStyle(fontSize: 16, height: 1.55)),
             ),
-        ],
+        ]),
       ),
     );
   }
@@ -366,16 +497,34 @@ class _RecordingState extends State<_Recording> {
 }
 
 // ---------------------------------------------------------------- Writing
-class _WritingTask extends StatefulWidget {
-  const _WritingTask({required this.task, required this.answers, required this.onAnswer});
+class _WritingBrief extends StatelessWidget {
+  const _WritingBrief({required this.task});
+  final Map<String, dynamic> task;
+  @override
+  Widget build(BuildContext context) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('${task['text'] ?? ''}', style: const TextStyle(fontSize: 16, height: 1.5)),
+            if ((task['min_words'] as num? ?? 0) > 0)
+              Padding(padding: const EdgeInsets.only(top: 10),
+                  child: Text('Write at least ${task['min_words']} words.', style: const TextStyle(fontWeight: FontWeight.w700))),
+            if (task['image'] is String) ...[const SizedBox(height: 12), _MediaImage(path: task['image'] as String)],
+          ]),
+        ),
+      );
+}
+
+class _WritingAnswer extends StatefulWidget {
+  const _WritingAnswer({required this.task, required this.answers, required this.onAnswer});
   final Map<String, dynamic> task;
   final Map<String, String> answers;
   final void Function(String, String?) onAnswer;
   @override
-  State<_WritingTask> createState() => _WritingTaskState();
+  State<_WritingAnswer> createState() => _WritingAnswerState();
 }
 
-class _WritingTaskState extends State<_WritingTask> {
+class _WritingAnswerState extends State<_WritingAnswer> {
   late final TextEditingController _c = TextEditingController(text: widget.answers['${widget.task['id']}'] ?? '');
 
   @override
@@ -388,33 +537,29 @@ class _WritingTaskState extends State<_WritingTask> {
 
   @override
   Widget build(BuildContext context) {
-    final t = widget.task;
-    final min = (t['min_words'] as num?)?.toInt() ?? 0;
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('${t['text']}', style: const TextStyle(fontSize: 16, height: 1.5)),
-            if (t['image'] is String) ...[const SizedBox(height: 12), _MediaImage(path: t['image'] as String)],
-          ]),
+    final min = (widget.task['min_words'] as num?)?.toInt() ?? 0;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Expanded(
+          child: TextField(
+            controller: _c,
+            expands: true,
+            maxLines: null,
+            minLines: null,
+            textAlignVertical: TextAlignVertical.top,
+            autocorrect: false,
+            enableSuggestions: false,
+            keyboardType: TextInputType.multiline,
+            onChanged: (v) { setState(() {}); widget.onAnswer('${widget.task['id']}', v); },
+            decoration: const InputDecoration(hintText: 'Write your answer here'),
+          ),
         ),
-      ),
-      const SizedBox(height: 12),
-      TextField(
-        controller: _c,
-        minLines: 12,
-        maxLines: null,
-        autocorrect: false,
-        enableSuggestions: false,
-        keyboardType: TextInputType.multiline,
-        onChanged: (v) { setState(() {}); widget.onAnswer('${t['id']}', v); },
-        decoration: InputDecoration(hintText: 'Write your answer here'),
-      ),
-      const SizedBox(height: 6),
-      Text('$_words words${min > 0 ? ' · at least $min' : ''}', textAlign: TextAlign.right,
-          style: TextStyle(color: _words >= min ? C.green : Theme.of(context).hintColor, fontWeight: FontWeight.w600)),
-    ]);
+        const SizedBox(height: 6),
+        Text('$_words words${min > 0 ? ' · at least $min' : ''}', textAlign: TextAlign.right,
+            style: TextStyle(color: _words >= min ? C.green : Theme.of(context).hintColor, fontWeight: FontWeight.w600)),
+      ]),
+    );
   }
 }
 
@@ -865,132 +1010,3 @@ class ResultsScreen extends StatelessWidget {
   }
 }
 
-/// Every question number of the section in one row: answered ones filled; a tap opens that part and
-/// brings the question into view.
-class _NumberBar extends StatelessWidget {
-  const _NumberBar({required this.parts, required this.answers, required this.keyFor});
-  final List<Map> parts;
-  final Map<String, String> answers;
-  final GlobalKey Function(String) keyFor;
-
-  @override
-  Widget build(BuildContext context) {
-    final items = <({String label, String qid, int part})>[];
-    for (var pi = 0; pi < parts.length; pi++) {
-      for (final g in (parts[pi]['groups'] as List? ?? []).cast<Map>()) {
-        for (final q in (g['questions'] as List? ?? []).cast<Map>()) {
-          final label = q['numbers'] is List ? (q['numbers'] as List).join('–') : '${q['number']}';
-          items.add((label: label, qid: '${q['id']}', part: pi));
-        }
-      }
-    }
-    final done = items.where((i) => (answers[i.qid] ?? '').isNotEmpty).length;
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return Material(
-      color: Theme.of(context).colorScheme.surface,
-      elevation: 6,
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: 58,
-          child: Row(children: [
-            Padding(
-              padding: const EdgeInsets.only(left: 12, right: 6),
-              child: Text('$done/${items.length}', style: const TextStyle(fontWeight: FontWeight.w800)),
-            ),
-            Expanded(
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 11),
-                itemCount: items.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 6),
-                itemBuilder: (context, i) {
-                  final it = items[i];
-                  final answered = (answers[it.qid] ?? '').isNotEmpty;
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(9),
-                    onTap: () {
-                      DefaultTabController.of(context).animateTo(it.part);
-                      Future.delayed(const Duration(milliseconds: 350), () {
-                        final ctx = keyFor(it.qid).currentContext;
-                        if (ctx != null) Scrollable.ensureVisible(ctx, alignment: .2, duration: const Duration(milliseconds: 300));
-                      });
-                    },
-                    child: Container(
-                      constraints: const BoxConstraints(minWidth: 36),
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(9),
-                        color: answered ? C.accent : (dark ? Colors.white.withValues(alpha: .08) : const Color(0xFF141413).withValues(alpha: .06)),
-                      ),
-                      child: Text(it.label, style: TextStyle(fontWeight: FontWeight.w700, color: answered ? Colors.white : null)),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ]),
-        ),
-      ),
-    );
-  }
-}
-
-/// A finished Listening or Reading section: every question with your answer, the right one and why.
-class ReviewScreen extends StatelessWidget {
-  const ReviewScreen({super.key, required this.attemptId, required this.section});
-  final int attemptId;
-  final int section;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Answers')),
-      body: Loader<Map<String, dynamic>>(
-        load: () async => (await Api.I.get('/api/attempts/$attemptId/review', {'section': section}))['state'] as Map<String, dynamic>,
-        build: (context, st, reload) {
-          final marking = ((st['marking'] as Map?) ?? {}).cast<String, dynamic>();
-          final answers = ((st['answers'] as Map?) ?? {}).cast<String, dynamic>();
-          final rows = <Widget>[];
-          for (final p in ((st['section'] as Map)['parts'] as List).cast<Map>()) {
-            rows.add(Padding(padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
-                child: Text('${p['title']}', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800))));
-            for (final g in (p['groups'] as List? ?? []).cast<Map>()) {
-              for (final q in (g['questions'] as List? ?? []).cast<Map>()) {
-                final m = (marking['${q['id']}'] as Map?) ?? {};
-                final marks = (m['marks'] as num?) ?? 0, worth = (m['worth'] as num?) ?? 1;
-                final ok = marks >= worth;
-                final label = q['numbers'] is List ? (q['numbers'] as List).join('–') : '${q['number']}';
-                rows.add(Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  color: (ok ? C.green : C.red).withValues(alpha: .08),
-                  child: Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Row(children: [
-                        Icon(ok ? Icons.check_circle_rounded : Icons.cancel_rounded, color: ok ? C.green : C.red, size: 20),
-                        const SizedBox(width: 8),
-                        Text(label, style: const TextStyle(fontWeight: FontWeight.w800)),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text('${q['text'] ?? ''}', maxLines: 2, overflow: TextOverflow.ellipsis)),
-                      ]),
-                      const SizedBox(height: 6),
-                      Text('Your answer: ${answers['${q['id']}'] ?? '—'}'),
-                      if (!ok) Text('Answer: ${m['answer'] is List ? (m['answer'] as List).join(' / ') : m['answer'] ?? ''}',
-                          style: const TextStyle(fontWeight: FontWeight.w700)),
-                      if ('${m['explanation'] ?? ''}'.isNotEmpty)
-                        Padding(padding: const EdgeInsets.only(top: 6),
-                            child: Text('${m['explanation']}', style: TextStyle(color: Theme.of(context).hintColor))),
-                    ]),
-                  ),
-                ));
-              }
-            }
-          }
-          return ListView(padding: const EdgeInsets.all(16), children: rows);
-        },
-      ),
-    );
-  }
-}

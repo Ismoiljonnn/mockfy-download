@@ -2,11 +2,13 @@
 // Sign-in happens in the phone's browser (Google does not allow it inside apps); the site then opens
 // mockfy://auth?code=..., and the app trades that one-time code for its own session.
 import 'dart:async';
+import 'dart:ui' show DartPluginRegistrant;
 
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:workmanager/workmanager.dart';
 
 import 'api.dart';
 import 'prefs.dart';
@@ -24,7 +26,27 @@ import 'updater.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Future.wait([Api.I.init(), Prefs.I.init(), Notify.I.init()]);
+  // news from Mockfy reaches the phone even when the app is closed: Android wakes this check about
+  // every 15 minutes (its shortest period) while there is a connection
+  try {
+    await Workmanager().initialize(newsInBackground);
+    await Workmanager().registerPeriodicTask('mockfy-news', 'mockfy-news',
+        frequency: const Duration(minutes: 15), constraints: Constraints(networkType: NetworkType.connected));
+  } catch (_) { /* no background work on this phone: news still arrives when the app opens */ }
   runApp(const MockfyApp());
+}
+
+@pragma('vm:entry-point')
+void newsInBackground() {
+  Workmanager().executeTask((task, data) async {
+    WidgetsFlutterBinding.ensureInitialized();
+    DartPluginRegistrant.ensureInitialized();
+    try {
+      await Api.I.init();
+      await Notify.I.sync();
+    } catch (_) {}
+    return true;
+  });
 }
 
 class MockfyApp extends StatelessWidget {
@@ -239,6 +261,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       checkForUpdate(context);                    // a newer APK installs itself
+      Notify.I.askPermission();                   // Android 13+ asks once before showing notifications
       Notify.I.sync();                            // Mockfy's news as phone notifications, and the badge
     });
   }

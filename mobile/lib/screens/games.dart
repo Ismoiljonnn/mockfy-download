@@ -22,43 +22,115 @@ const _games = [
   ('spell', 'Listening Spell', 'Hear the word, then spell it.', Icons.hearing_rounded, C.blue),
 ];
 
-class GamesScreen extends StatelessWidget {
+/// The games: today's quest (three different games with 10 or more, then crystals to claim), My words,
+/// and every game with your best score. Comes back up to date after each game.
+class GamesScreen extends StatefulWidget {
   const GamesScreen({super.key});
+  @override
+  State<GamesScreen> createState() => _GamesScreenState();
+}
+
+class _GamesScreenState extends State<GamesScreen> {
+  Key _k = UniqueKey();
+
+  Future<void> _claim() async {
+    try {
+      final r = await Api.I.post('/api/games/quest/claim');
+      Sfx.play('win');
+      if (mounted) toast(context, '+${r['reward']} crystals for today\'s quest!');
+    } on ApiError catch (e) {
+      if (mounted) toast(context, e.message);
+    }
+    setState(() => _k = UniqueKey());
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: rootBar(context, AppBar(title: const Text('Games'))),
-      body: ListView(padding: const EdgeInsets.all(16), children: [
-        Card(
-          color: C.green.withValues(alpha: .12),
-          child: ListTile(
-            leading: const Icon(Icons.style_rounded, color: C.green),
-            title: const Text('My words', style: TextStyle(fontWeight: FontWeight.w700)),
-            subtitle: const Text('Review the words you saved, a few each day'),
-            trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WordsReviewScreen())),
-          ),
-        ),
-        const SizedBox(height: 12),
-        for (final g in _games)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Card(
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                leading: Container(
-                  width: 46, height: 46,
-                  decoration: BoxDecoration(color: g.$5.withValues(alpha: .15), borderRadius: BorderRadius.circular(12)),
-                  child: Icon(g.$4, color: g.$5),
-                ),
-                title: Text(g.$2, style: const TextStyle(fontWeight: FontWeight.w700)),
-                subtitle: Text(g.$3),
-                trailing: const Icon(Icons.play_circle_fill_rounded, color: C.accent, size: 30),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => _gameFor(g.$1, g.$2))),
+      body: Loader<Map<String, dynamic>>(
+        key: _k,
+        load: () => Api.I.get('/api/app/games'),
+        build: (context, d, reload) {
+          final quest = ((d['quest'] as Map?) ?? {}).cast<String, dynamic>();
+          final best = ((d['games'] as Map?) ?? {}).cast<String, dynamic>();
+          final done = (quest['done'] as num?)?.toInt() ?? 0, of = (quest['of'] as num?)?.toInt() ?? 3;
+          final ready = done >= of && quest['claimed'] != true;
+          return ListView(padding: const EdgeInsets.all(16), children: [
+            // today's quest
+            Card(
+              color: C.gold.withValues(alpha: .12),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    const Icon(Icons.flag_circle_rounded, color: C.gold, size: 30),
+                    const SizedBox(width: 10),
+                    const Expanded(child: Text("Today's quest", style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800))),
+                    Text('+${quest['reward'] ?? 30} 💎', style: const TextStyle(fontWeight: FontWeight.w800)),
+                  ]),
+                  const SizedBox(height: 6),
+                  Text('Play $of different games with ${quest['score'] ?? 10} or more points.', style: TextStyle(color: Theme.of(context).hintColor)),
+                  const SizedBox(height: 10),
+                  LinearProgressIndicator(value: of == 0 ? 0 : done / of, color: C.gold, minHeight: 8, borderRadius: BorderRadius.circular(5)),
+                  const SizedBox(height: 10),
+                  if (quest['claimed'] == true)
+                    const Text('Done for today. Come back tomorrow!', style: TextStyle(fontWeight: FontWeight.w700))
+                  else if (ready)
+                    FilledButton(onPressed: _claim, child: const Text('Claim the reward'))
+                  else
+                    Text('$done of $of games', style: const TextStyle(fontWeight: FontWeight.w700)),
+                ]),
               ),
             ),
-          ),
-      ]),
+            const SizedBox(height: 12),
+            Card(
+              color: C.green.withValues(alpha: .12),
+              child: ListTile(
+                leading: const Icon(Icons.style_rounded, color: C.green),
+                title: const Text('My words', style: TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: const Text('Review the words you saved, a few each day'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WordsReviewScreen())),
+              ),
+            ),
+            const SizedBox(height: 12),
+            for (final g in _games)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Card(
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    leading: Container(
+                      width: 46, height: 46,
+                      decoration: BoxDecoration(color: g.$5.withValues(alpha: .15), borderRadius: BorderRadius.circular(12)),
+                      child: Icon(g.$4, color: g.$5),
+                    ),
+                    title: Row(children: [
+                      Flexible(child: Text(g.$2, style: const TextStyle(fontWeight: FontWeight.w700))),
+                      if (d['today'] == g.$1) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(color: C.accent, borderRadius: BorderRadius.circular(6)),
+                          child: const Text('TODAY', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
+                        ),
+                      ],
+                    ]),
+                    subtitle: Text(best[g.$1] is Map && ((best[g.$1] as Map)['best'] ?? 0) > 0
+                        ? 'Best ${(best[g.$1] as Map)['best']}${(best[g.$1] as Map)['rank'] != null ? ' · #${(best[g.$1] as Map)['rank']} this week' : ''}'
+                        : g.$3),
+                    trailing: const Icon(Icons.play_circle_fill_rounded, color: C.accent, size: 30),
+                    onTap: () async {
+                      await Navigator.push(context, MaterialPageRoute(builder: (_) => _gameFor(g.$1, g.$2)));
+                      setState(() => _k = UniqueKey());                 // the quest and bests, after the game
+                    },
+                  ),
+                ),
+              ),
+          ]);
+        },
+      ),
     );
   }
 }

@@ -1,16 +1,16 @@
 // Mockfy desktop: a window on mockfy.uz with what a browser tab cannot give (its own icon and window,
-// no tabs or address bar, no spellcheck in tests). The window has our own slim title bar (titlebar.html,
-// in the page's own colours, like Telegram's); the site is shown under it in a WebContentsView.
+// no tabs or address bar, no spellcheck in tests). No title bar: the site's own top row is where the
+// window is dragged (it knows it is in the app), and the window buttons sit over its right end in its colours.
 // Sign-in goes through the computer's browser (Google blocks it inside apps): the site sends the app a
 // one-time code on mockfy://auth?code=...
-const { app, BrowserWindow, WebContentsView, shell, session, Menu, nativeTheme, ipcMain } = require('electron');
+const { app, BrowserWindow, shell, session, Menu, nativeTheme, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
 const APP_URL = (process.env.MOCKFY_URL || 'https://mockfy.uz').replace(/\/$/, '');
 const ORIGIN = new URL(APP_URL).origin;
 const PROTOCOL = 'mockfy';
-const BAR = 38;                                   // title bar height
+const BAR = 52;                                   // the window buttons' height: the page's top row
 const MAC = process.platform === 'darwin';
 let win = null;
 let view = null;
@@ -42,7 +42,7 @@ function openLink(link) {
   const code = u.searchParams.get('code');
   if (u.hostname !== 'auth' || !code || !/^[A-Za-z0-9_-]{20,64}$/.test(code)) return;
   const target = `${APP_URL}/auth/desktop/claim?code=${encodeURIComponent(code)}`;
-  if (view) { view.webContents.loadURL(target); win.show(); win.focus(); } else pendingLink = link;
+  if (win) { win.webContents.loadURL(target); win.show(); win.focus(); } else pendingLink = link;
 }
 
 // ---- remembered window size ----------------------------------------------------------------
@@ -73,27 +73,12 @@ function applyLook() {
   if (!MAC) {
     try { win.setTitleBarOverlay({ color: look.bg, symbolColor: look.dark ? '#ECECEC' : '#141413', height: BAR }); } catch { /* older systems */ }
   }
-  win.webContents.send('mf-look', { ...look, canBack: !!view && view.webContents.navigationHistory.canGoBack() });
 }
 ipcMain.on('mf-page-look', (e, l) => {
-  if (!view || e.sender !== view.webContents || !l || typeof l.bg !== 'string') return;
+  if (!win || e.sender !== win.webContents || !l || typeof l.bg !== 'string') return;
   look = { bg: l.bg, dark: !!l.dark };
   applyLook();
 });
-ipcMain.on('mf-bar', (e, action) => {
-  if (!view || !win || e.sender !== win.webContents) return;
-  const wc = view.webContents;
-  if (action === 'back' && wc.navigationHistory.canGoBack()) wc.navigationHistory.goBack();
-  else if (action === 'reload') wc.reload();
-  else if (action === 'home') wc.loadURL(`${APP_URL}/dashboard`);
-  else if (action === 'max') { if (win.isMaximized()) win.unmaximize(); else win.maximize(); }
-});
-
-function layout() {
-  if (!win || !view) return;
-  const [w, h] = win.getContentSize();
-  view.setBounds({ x: 0, y: BAR, width: w, height: Math.max(0, h - BAR) });
-}
 
 function createWindow() {
   const st = loadState();
@@ -101,31 +86,24 @@ function createWindow() {
     x: st.x, y: st.y, width: st.width || 1280, height: st.height || 820, minWidth: 900, minHeight: 600,
     title: 'Mockfy', show: false,
     titleBarStyle: 'hidden',
-    ...(MAC ? { trafficLightPosition: { x: 14, y: 12 } }
+    ...(MAC ? { trafficLightPosition: { x: 16, y: 18 } }
       : { titleBarOverlay: { color: look.bg, symbolColor: look.dark ? '#ECECEC' : '#141413', height: BAR } }),
     backgroundColor: look.bg,
     icon: path.join(__dirname, 'build', 'icon.png'),
-    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, sandbox: true },
-  });
-  win.loadFile(path.join(__dirname, 'titlebar.html'), { query: { mac: MAC ? '1' : '' } });
-  if (st.maximized) win.maximize();
-
-  view = new WebContentsView({
     webPreferences: { preload: path.join(__dirname, 'preload.js'), spellcheck: false, contextIsolation: true, sandbox: true },
   });
-  view.setBackgroundColor(look.bg);
-  win.contentView.addChildView(view);
-  layout();
-  const wc = view.webContents;
+  view = win;                                     // the page is the window's own contents
+  if (st.maximized) win.maximize();
+  const wc = win.webContents;
   wc.setUserAgent(`${wc.getUserAgent()} MockfyDesktop/${app.getVersion()}`);
 
   win.once('ready-to-show', () => win.show());
-  win.on('resize', () => { layout(); saveState(); });
-  ['move', 'close'].forEach((ev) => win.on(ev, saveState));
+  ['resize', 'move', 'close'].forEach((ev) => win.on(ev, saveState));
   win.on('closed', () => { win = null; view = null; });
-  wc.on('page-title-updated', (_e, t) => win && win.setTitle(t));
   wc.on('did-navigate', applyLook);
-  wc.on('did-navigate-in-page', applyLook);
+  if (process.env.MOCKFY_SHOT) {                  // development: a picture of the window after each page loads
+    wc.on('did-finish-load', () => setTimeout(() => wc.capturePage().then((img) => fs.writeFileSync(process.env.MOCKFY_SHOT, img.toPNG())), 2500));
+  }
 
   // sign-in and other sites open in the browser; our own pages stay here
   wc.on('will-navigate', (e, url) => {

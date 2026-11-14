@@ -19,6 +19,11 @@ let pendingLink = process.argv.find((a) => a.startsWith(`${PROTOCOL}://`)) || nu
 // a separate profile for trying a build while the installed app is open: MOCKFY_PROFILE=test
 if (process.env.MOCKFY_PROFILE) app.setPath('userData', path.join(app.getPath('appData'), `Mockfy-${process.env.MOCKFY_PROFILE}`));
 
+// faster pages: the GPU draws them, compiled scripts are kept between visits
+app.commandLine.appendSwitch('enable-gpu-rasterization');
+app.commandLine.appendSwitch('enable-zero-copy');
+if (process.platform === 'win32') app.setAppUserModelId('uz.mockfy.desktop');   // the taskbar and notifications know it as Mockfy
+
 // ---- one window, and mockfy:// links reach it -------------------------------------------
 // A second launch (a mockfy:// link from the browser, a second click on the icon) hands its link to the
 // window already open and ends at once, before it can draw a window of its own.
@@ -97,7 +102,7 @@ function createWindow() {
       : { titleBarOverlay: { color: '#00000000', symbolColor: look.dark ? '#ECECEC' : '#141413', height: BAR } }),
     backgroundColor: look.bg,
     icon: path.join(__dirname, 'build', 'icon.png'),
-    webPreferences: { preload: path.join(__dirname, 'preload.js'), spellcheck: false, contextIsolation: true, sandbox: true },
+    webPreferences: { preload: path.join(__dirname, 'preload.js'), spellcheck: false, contextIsolation: true, sandbox: true, v8CacheOptions: 'bypassHeatCheck', backgroundThrottling: false },
   });
   view = win;                                     // the page is the window's own contents
   if (st.maximized) win.maximize();
@@ -155,6 +160,19 @@ function autoUpdate() {
   setInterval(check, 4 * 60 * 60 * 1000);
 }
 
+// Windows search finds apps by their Start menu shortcut. The installer makes one, but an update or a
+// clean-up can lose it; the app puts it back itself (and keeps it pointing at this copy).
+function ensureStartMenuShortcut() {
+  if (process.platform !== 'win32' || !app.isPackaged) return;
+  try {
+    const link = path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Mockfy.lnk');
+    const want = { target: process.execPath, appUserModelId: 'uz.mockfy.desktop', description: 'Mockfy', icon: process.execPath, iconIndex: 0 };
+    let ok = false;
+    try { ok = shell.readShortcutLink(link).target === process.execPath; } catch { ok = false; }
+    if (!ok) shell.writeShortcutLink(link, fs.existsSync(link) ? 'replace' : 'create', want);
+  } catch { /* never stops the app */ }
+}
+
 if (FIRST) app.whenReady().then(() => {
   // the microphone for Speaking, notifications; only for Mockfy itself
   session.defaultSession.setPermissionRequestHandler((wc, permission, cb) => {
@@ -171,6 +189,7 @@ if (FIRST) app.whenReady().then(() => {
   }
   createWindow();
   autoUpdate();
+  ensureStartMenuShortcut();
   app.on('activate', () => { if (!win) createWindow(); });
 });
 

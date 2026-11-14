@@ -42,8 +42,15 @@ if (location.protocol === 'https:' || location.protocol === 'http:') {
     if (process.platform === 'darwin') root.classList.add('mf-mac');
   };
   ipcRenderer.on('mf-full', (_e, on) => document.documentElement.classList.toggle('mf-full', !!on));
+  // the scroll bar starts under the page's top row: tell the page how tall that row is
+  const top = () => {
+    const bar = document.querySelector('.header-bar, .lp-header');
+    if (bar) document.documentElement.style.setProperty('--mf-top', Math.round(bar.getBoundingClientRect().height) + 'px');
+  };
   window.addEventListener('DOMContentLoaded', () => {
     mark();
+    top();
+    window.addEventListener('resize', top);
     ipcRenderer.send('mf-ask-full');
     send();
     new MutationObserver(() => setTimeout(send, 30)).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-dark', 'class'] });

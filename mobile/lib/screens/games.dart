@@ -6,6 +6,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 
+import '../desktop_shell.dart';
 import '../api.dart';
 import '../prefs.dart';
 import '../theme.dart';
@@ -26,7 +27,7 @@ class GamesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Games')),
+      appBar: rootBar(context, AppBar(title: const Text('Games'))),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         Card(
           color: C.green.withValues(alpha: .12),
@@ -802,7 +803,7 @@ class _WordsReviewScreenState extends State<WordsReviewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('My words')),
+      appBar: rootBar(context, AppBar(title: const Text('My words'))),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _items.isEmpty || _i >= _items.length

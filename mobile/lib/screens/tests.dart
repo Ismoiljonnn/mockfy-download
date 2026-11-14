@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../desktop_shell.dart';
 import '../api.dart';
 import '../theme.dart';
 import '../widgets.dart';
@@ -15,19 +16,21 @@ const sectionColors = {'listening': C.blue, 'reading': C.green, 'writing': C.acc
 
 /// Full mock tests and single-section practice, started and taken in the app.
 class TestsScreen extends StatelessWidget {
-  const TestsScreen({super.key, required this.onSignedOut});
+  const TestsScreen({super.key, required this.onSignedOut, this.initialTab = 0});
   final VoidCallback onSignedOut;
+  final int initialTab;
 
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 2,
+      initialIndex: initialTab,
       child: Scaffold(
-        appBar: AppBar(
+        appBar: rootBar(context, AppBar(
           leading: menuButton(context),
           title: const Text('Tests'),
           bottom: const TabBar(tabs: [Tab(text: 'Full mock'), Tab(text: 'Section practice')]),
-        ),
+        )),
         body: Loader<Map<String, dynamic>>(
           load: () => Api.I.get('/api/app/tests'),
           onSignedOut: onSignedOut,

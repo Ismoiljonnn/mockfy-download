@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../desktop_shell.dart';
 import '../api.dart';
 import '../theme.dart';
 import '../widgets.dart';
@@ -34,7 +35,8 @@ class HomeScreen extends StatelessWidget {
             final streak = d['streak'] as Map<String, dynamic>;
             final daily = d['daily'] as Map<String, dynamic>;
             final next = _nextStage(daily);
-            return ListView(padding: const EdgeInsets.all(16), children: [
+            final desktop = DesktopScope.on(context) && MediaQuery.sizeOf(context).width >= 900;
+            final cards = <Widget>[
               if (menuButton(context) != null) Align(alignment: Alignment.centerLeft, child: menuButton(context)!),
               InkWell(
                 borderRadius: BorderRadius.circular(14),
@@ -107,6 +109,22 @@ class HomeScreen extends StatelessWidget {
                   trailing: const Icon(Icons.chevron_right_rounded),
                 ),
               ),
+            ];
+            if (!desktop) return ListView(padding: const EdgeInsets.all(16), children: cards);
+            // wide: the greeting and the numbers on the left with Daily English and the tests; on the right
+            // the streak and the league, like the desktop app's two columns
+            final left = <Widget>[for (final w in cards) if (w is! _StreakCard) w];
+            final right = <Widget>[for (final w in cards) if (w is _StreakCard) w];
+            return ListView(padding: const EdgeInsets.all(24), children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Expanded(flex: 3, child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: left)),
+                const SizedBox(width: 24),
+                Expanded(flex: 2, child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  ...right,
+                  const SizedBox(height: 12),
+                  const _Recommended(),
+                ])),
+              ]),
             ]);
           },
         ),
@@ -166,4 +184,38 @@ class _StreakCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The right column on wide screens: what to work on next.
+class _Recommended extends StatelessWidget {
+  const _Recommended();
+  @override
+  Widget build(BuildContext context) => FutureBuilder<Map<String, dynamic>>(
+        future: Api.I.get('/api/recommendations'),
+        builder: (context, snap) {
+          final items = ((snap.data?['recommendations'] as List?) ?? []).cast<Map>();
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Recommendations', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 8),
+                if (items.isEmpty)
+                  Text('They are built from the questions you miss, so they appear after your first test.',
+                      style: TextStyle(color: Theme.of(context).hintColor))
+                else
+                  for (final r in items.take(4))
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        const Icon(Icons.lightbulb_rounded, color: C.gold, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text('${r['title']}', style: const TextStyle(fontWeight: FontWeight.w600))),
+                      ]),
+                    ),
+              ]),
+            ),
+          );
+        },
+      );
 }

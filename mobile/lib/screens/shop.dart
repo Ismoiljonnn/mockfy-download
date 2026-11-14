@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../desktop_shell.dart';
 import '../api.dart';
 import '../theme.dart';
 import '../prefs.dart';
@@ -24,7 +25,7 @@ class ShopScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Shop')),
+      appBar: rootBar(context, AppBar(title: const Text('Shop'))),
       body: Loader<Map<String, dynamic>>(
         load: () async => (await Api.I.get('/api/shop'))['shop'] as Map<String, dynamic>,
         onSignedOut: onSignedOut,

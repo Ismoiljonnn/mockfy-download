@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../desktop_shell.dart';
 import '../api.dart';
 import '../notify.dart';
 import '../theme.dart';
@@ -140,7 +141,7 @@ class HistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('My results')),
+      appBar: rootBar(context, AppBar(title: const Text('My results'))),
       body: Loader<Map<String, dynamic>>(
         load: () => Api.I.get('/api/history'),
         build: (context, d, reload) {
@@ -176,7 +177,7 @@ class RecommendationsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Recommendations')),
+      appBar: rootBar(context, AppBar(title: const Text('Recommendations'))),
       body: Loader<List<Map>>(
         load: () async => ((await Api.I.get('/api/recommendations'))['recommendations'] as List).cast<Map>(),
         build: (context, items, reload) => items.isEmpty

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../desktop_shell.dart';
 import '../api.dart';
 import '../theme.dart';
 import '../widgets.dart';
@@ -17,11 +18,11 @@ class LeaderboardScreen extends StatelessWidget {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        appBar: AppBar(
+        appBar: rootBar(context, AppBar(
           leading: menuButton(context),
           title: const Text('Leaderboard'),
           bottom: const TabBar(tabs: [Tab(text: 'This week'), Tab(text: 'All time')]),
-        ),
+        )),
         body: TabBarView(children: [
           _Board(period: 'week', onSignedOut: onSignedOut),
           _Board(period: 'all', onSignedOut: onSignedOut),

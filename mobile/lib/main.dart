@@ -16,6 +16,7 @@ import 'screens/daily.dart';
 import 'screens/home.dart';
 import 'screens/leaderboard.dart';
 import 'screens/profile.dart';
+import 'desktop_shell.dart';
 import 'notify.dart';
 import 'screens/more.dart';
 import 'screens/teach.dart';
@@ -327,60 +328,14 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
     // tablets and wide windows: laid out like the desktop app, the menu down the left side with names,
     // the pages beside it; phones keep the bar at the bottom
     final screen = MediaQuery.sizeOf(context);
-    final wide = screen.shortestSide >= 600;
-    if (wide && screen.height > screen.width) {
-      // a tablet held upright: the side menu folds into a drawer, opened by ☰ on each page
-      return Scaffold(
-        key: _scaffold,
-        drawer: NavigationDrawer(
-          selectedIndex: _tab,
-          onDestinationSelected: (i) { Navigator.pop(context); go(i); },
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 16, 16),
-              child: Row(children: [
-                Image.asset('assets/hudi.png', width: 34, height: 34),
-                const SizedBox(width: 10),
-                const Text('Mockfy', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -.5)),
-              ]),
-            ),
-            for (final d in destinations)
-              NavigationDrawerDestination(icon: d.icon, selectedIcon: d.selectedIcon, label: Text(d.label)),
-          ],
-        ),
-        body: ShellScope(openMenu: () => _scaffold.currentState?.openDrawer(), child: body),
-      );
-    }
-    if (wide) {
-      final extended = MediaQuery.sizeOf(context).width >= 900;
-      return Scaffold(
-        body: SafeArea(
-          child: Row(children: [
-            NavigationRail(
-              extended: extended,
-              minExtendedWidth: 230,
-              selectedIndex: _tab,
-              onDestinationSelected: go,
-              labelType: extended ? NavigationRailLabelType.none : NavigationRailLabelType.all,
-              leading: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 16, 8, 20),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Image.asset('assets/hudi.png', width: 34, height: 34),
-                  if (extended) ...[
-                    const SizedBox(width: 10),
-                    const Text('Mockfy', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -.5)),
-                  ],
-                ]),
-              ),
-              destinations: [
-                for (final d in destinations)
-                  NavigationRailDestination(icon: d.icon, selectedIcon: d.selectedIcon, label: Text(d.label)),
-              ],
-            ),
-            VerticalDivider(width: 1, thickness: 1, color: Theme.of(context).dividerColor.withValues(alpha: .4)),
-            Expanded(child: body),
-          ]),
-        ),
+    if (screen.shortestSide >= 600) {
+      // tablets: laid out like the desktop app (upright, the sidebar becomes a drawer)
+      return DesktopShell(
+        key: ValueKey('desk-$ws'),
+        me: widget.me,
+        teacher: teacher,
+        onSignedOut: widget.onSignedOut,
+        drawer: screen.height > screen.width,
       );
     }
     return Scaffold(

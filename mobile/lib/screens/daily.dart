@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../desktop_shell.dart';
 import '../api.dart';
 import '../theme.dart';
 import '../widgets.dart';
@@ -15,7 +16,7 @@ class DailyScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(leading: menuButton(context), title: const Text('Daily English')),
+      appBar: rootBar(context, AppBar(leading: menuButton(context), title: const Text('Daily English'))),
       body: Loader<Map<String, dynamic>>(
         load: () async => (await Api.I.get('/api/daily'))['map'] as Map<String, dynamic>,
         onSignedOut: onSignedOut,

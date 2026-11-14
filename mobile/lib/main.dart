@@ -306,7 +306,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
             HomeScreen(me: widget.me, onSignedOut: widget.onSignedOut, goTab: go),
             TestsScreen(onSignedOut: widget.onSignedOut),
             DailyScreen(onSignedOut: widget.onSignedOut),
-            LeaderboardScreen(onSignedOut: widget.onSignedOut),
+            FeaturesScreen(me: widget.me, onSignedOut: widget.onSignedOut),
             me,
           ];
     if (_tab >= pages.length) _tab = 0;
@@ -315,14 +315,14 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
             const NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard_rounded), label: 'Class'),
             const NavigationDestination(icon: Icon(Icons.people_alt_outlined), selectedIcon: Icon(Icons.people_alt_rounded), label: 'Students'),
             const NavigationDestination(icon: Icon(Icons.assignment_outlined), selectedIcon: Icon(Icons.assignment_rounded), label: 'Homework'),
-            NavigationDestination(icon: _MoreIcon(selected: false), selectedIcon: _MoreIcon(selected: true), label: 'More'),
+            NavigationDestination(icon: _MoreIcon(selected: false), selectedIcon: _MoreIcon(selected: true), label: 'Profile'),
           ]
         : <NavigationDestination>[
             const NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Home'),
             const NavigationDestination(icon: Icon(Icons.assignment_outlined), selectedIcon: Icon(Icons.assignment_rounded), label: 'Tests'),
             const NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map_rounded), label: 'Daily'),
-            const NavigationDestination(icon: Icon(Icons.emoji_events_outlined), selectedIcon: Icon(Icons.emoji_events_rounded), label: 'Leaderboard'),
-            NavigationDestination(icon: _MoreIcon(selected: false), selectedIcon: _MoreIcon(selected: true), label: 'More'),
+            const NavigationDestination(icon: Icon(Icons.grid_view_outlined), selectedIcon: Icon(Icons.grid_view_rounded), label: 'More'),
+            NavigationDestination(icon: _MoreIcon(selected: false), selectedIcon: _MoreIcon(selected: true), label: 'Profile'),
           ];
     final body = IndexedStack(key: ValueKey(ws), index: _tab, children: pages);
     // tablets and wide windows: laid out like the desktop app, the menu down the left side with names,
@@ -404,7 +404,7 @@ class _MoreIcon extends StatelessWidget {
         builder: (context, n, _) => Badge(
           isLabelVisible: n > 0,
           smallSize: 9,
-          child: Icon(selected ? Icons.grid_view_rounded : Icons.grid_view_outlined),
+          child: Icon(selected ? Icons.person_rounded : Icons.person_outline_rounded),
         ),
       );
 }

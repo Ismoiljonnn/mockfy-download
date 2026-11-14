@@ -12,12 +12,14 @@ import '../webpage.dart';
 import '../widgets.dart';
 import 'exam.dart';
 import 'games.dart';
+import 'leaderboard.dart';
 import 'mockday.dart';
 import 'profile.dart';
 import 'settings.dart';
 import 'shop.dart';
 
 class MoreScreen extends StatelessWidget {
+  // the Profile tab (it kept its old name): the profile card, notifications, settings, help
   const MoreScreen({super.key, required this.me, required this.onSignedOut});
   final Map<String, dynamic> me;
   final VoidCallback onSignedOut;
@@ -36,27 +38,16 @@ class MoreScreen extends StatelessWidget {
           trailing: trailing ?? const Icon(Icons.chevron_right_rounded),
           onTap: () => _go(context, page),
         );
-    Widget group(String title, List<Widget> items) => Padding(
-          padding: const EdgeInsets.only(top: 18),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Padding(padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
-                child: Text(title.toUpperCase(), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: .6, color: Theme.of(context).hintColor))),
-            Card(child: Column(children: items)),
-          ]),
-        );
     final user = '${me['username']}';
-    final on = ((me['features'] as Map?) ?? {}).cast<String, dynamic>();   // what the website has switched off stays hidden
     return Scaffold(
-      appBar: AppBar(leading: menuButton(context), title: const Text('More'), actions: [
-        IconButton(tooltip: 'Search', icon: const Icon(Icons.search_rounded), onPressed: () => _go(context, const SearchScreen())),
-      ]),
+      appBar: AppBar(leading: menuButton(context), title: const Text('Profile')),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 32), children: [
         Card(
           child: ListTile(
             contentPadding: const EdgeInsets.all(12),
-            leading: Avatar(url: me['avatar'] as String?, initial: '${me['name']}'.isEmpty ? '?' : '${me['name']}'[0].toUpperCase(), size: 48),
+            leading: Avatar(url: me['avatar'] as String?, initial: '${me['name']}'.isEmpty ? '?' : '${me['name']}'[0].toUpperCase(), size: 52),
             title: Row(children: [
-              Flexible(child: Text('${me['name']}', overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17))),
+              Flexible(child: Text('${me['name']}', overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18))),
               if (me['isPro'] == true) ...[const SizedBox(width: 6), const ProTick()],
             ]),
             subtitle: Text('@$user · My profile'),
@@ -64,28 +55,80 @@ class MoreScreen extends StatelessWidget {
             onTap: () => _go(context, ProfileScreen(username: user, onSignedOut: onSignedOut)),
           ),
         ),
-        group('Practise', [
-          tile(Icons.sports_esports_rounded, C.accent, 'Games', const GamesScreen()),
-          tile(Icons.style_rounded, C.green, 'My words', const WordsReviewScreen()),
-          tile(Icons.event_rounded, C.gold, 'Mock Day', const MockDayScreen()),
-        ]),
-        group('Me', [
+        const SizedBox(height: 18),
+        Card(child: Column(children: [
           ValueListenableBuilder<int>(
             valueListenable: Notify.I.unread,
             builder: (context, n, _) => tile(Icons.notifications_rounded, C.red, 'Notifications', const NotificationsScreen(),
                 trailing: n > 0 ? Badge(label: Text('$n')) : null),
           ),
-          tile(Icons.history_rounded, C.blue, 'My results', const HistoryScreen()),
-          tile(Icons.lightbulb_rounded, C.gold, 'Recommendations', const RecommendationsScreen()),
-          if (on['friends'] == true) tile(Icons.people_alt_rounded, C.green, 'Friends', FriendsScreen(username: user)),
-          tile(Icons.storefront_rounded, C.accent, 'Shop', ShopScreen(onSignedOut: onSignedOut)),
           tile(Icons.settings_rounded, Theme.of(context).hintColor, 'Settings', SettingsScreen(username: user, onSignedOut: onSignedOut)),
-        ]),
-        group('Help', [
+        ])),
+        const SizedBox(height: 18),
+        Card(child: Column(children: [
           tile(Icons.menu_book_rounded, C.blue, 'Guide', const WebPage(title: 'Guide', path: '/docs')),
           tile(Icons.chat_rounded, C.green, 'Send feedback', const FeedbackScreen()),
-        ]),
+        ])),
       ]),
+    );
+  }
+}
+
+/// The More tab: everything else, as big tiles you can see at a glance.
+class FeaturesScreen extends StatelessWidget {
+  const FeaturesScreen({super.key, required this.me, required this.onSignedOut});
+  final Map<String, dynamic> me;
+  final VoidCallback onSignedOut;
+
+  @override
+  Widget build(BuildContext context) {
+    final on = ((me['features'] as Map?) ?? {}).cast<String, dynamic>();
+    final items = <(IconData, Color, String, String, Widget Function())>[
+      (Icons.emoji_events_rounded, C.gold, 'Leaderboard', 'This week and all time', () => LeaderboardScreen(onSignedOut: onSignedOut)),
+      (Icons.sports_esports_rounded, C.accent, 'Games', 'Seven word games', () => const GamesScreen()),
+      (Icons.style_rounded, C.green, 'My words', 'Words you saved', () => const WordsReviewScreen()),
+      (Icons.event_rounded, const Color(0xFF9B7BEA), 'Mock Day', 'Test day with everyone', () => const MockDayScreen()),
+      (Icons.history_rounded, C.blue, 'My results', 'Bands and answers', () => const HistoryScreen()),
+      (Icons.lightbulb_rounded, C.gold, 'Recommendations', 'What to work on next', () => const RecommendationsScreen()),
+      (Icons.storefront_rounded, C.accent, 'Shop', 'Freezes, boosts, Pro passes', () => ShopScreen(onSignedOut: onSignedOut)),
+      if (on['friends'] == true) (Icons.people_alt_rounded, C.green, 'Friends', 'Your friends', () => FriendsScreen(username: '${me['username']}')),
+    ];
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Scaffold(
+      appBar: AppBar(leading: menuButton(context), title: const Text('More'), actions: [
+        IconButton(tooltip: 'Search', icon: const Icon(Icons.search_rounded),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen()))),
+      ]),
+      body: GridView.builder(
+        padding: const EdgeInsets.all(16),
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 220, mainAxisExtent: 132, crossAxisSpacing: 12, mainAxisSpacing: 12),
+        itemCount: items.length,
+        itemBuilder: (context, i) {
+          final it = items[i];
+          return Material(
+            color: it.$2.withValues(alpha: dark ? .16 : .11),
+            borderRadius: BorderRadius.circular(18),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => it.$5())),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Container(
+                    width: 44, height: 44,
+                    decoration: BoxDecoration(color: it.$2, borderRadius: BorderRadius.circular(13)),
+                    child: Icon(it.$1, color: Colors.white, size: 24),
+                  ),
+                  const Spacer(),
+                  Text(it.$3, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 2),
+                  Text(it.$4, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12.5, color: Theme.of(context).hintColor)),
+                ]),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }

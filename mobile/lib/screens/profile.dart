@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../api.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import '../notify.dart';
+import '../webpage.dart';
+import 'more.dart';
 import 'settings.dart';
-import 'shop.dart';
 
 const _sections = ['listening', 'reading', 'writing', 'speaking'];
 
@@ -18,7 +20,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: isRoot ? const Text('Me') : _Title(username: username)),
+      appBar: AppBar(leading: isRoot ? menuButton(context) : null, title: isRoot ? const Text('Profile') : _Title(username: username)),
       body: Loader<Map<String, dynamic>>(
         load: () => Api.I.get('/api/app/profile/$username'),
         onSignedOut: onSignedOut,
@@ -109,13 +111,17 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
               const SizedBox(height: 12),
+              // your own page: notifications, settings and help at the foot
               Card(
                 child: Column(children: [
-                  ListTile(
-                    leading: const Icon(Icons.storefront_rounded, color: C.accent),
-                    title: const Text('Shop'),
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ShopScreen(onSignedOut: onSignedOut))),
+                  ValueListenableBuilder<int>(
+                    valueListenable: Notify.I.unread,
+                    builder: (context, n, _) => ListTile(
+                      leading: const Icon(Icons.notifications_rounded, color: C.red),
+                      title: const Text('Notifications'),
+                      trailing: n > 0 ? Badge(label: Text('$n')) : const Icon(Icons.chevron_right_rounded),
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen())),
+                    ),
                   ),
                   ListTile(
                     leading: const Icon(Icons.settings_rounded),
@@ -125,6 +131,23 @@ class ProfileScreen extends StatelessWidget {
                       await Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsScreen(username: username, onSignedOut: onSignedOut)));
                       reload();
                     },
+                  ),
+                ]),
+              ),
+              const SizedBox(height: 12),
+              Card(
+                child: Column(children: [
+                  ListTile(
+                    leading: const Icon(Icons.menu_book_rounded, color: C.blue),
+                    title: const Text('Guide'),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WebPage(title: 'Guide', path: '/docs'))),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.chat_rounded, color: C.green),
+                    title: const Text('Send feedback'),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FeedbackScreen())),
                   ),
                 ]),
               ),

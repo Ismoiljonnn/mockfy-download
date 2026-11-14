@@ -294,7 +294,8 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final ws = ((widget.me['workspaces'] as List?) ?? []).cast<Map>().where((w) => w['active'] == true).map((w) => '${w['kind']}').firstOrNull ?? 'ielts';
     final teacher = ws == 'teacher';
-    final me = MoreScreen(me: widget.me, onSignedOut: widget.onSignedOut);
+    // the Profile tab is your own profile page (notifications, settings and help at its foot)
+    final me = ProfileScreen(username: widget.me['username'] as String, onSignedOut: widget.onSignedOut, isRoot: true);
     final pages = teacher
         ? <Widget>[
             TeachHomeScreen(me: widget.me, onSignedOut: widget.onSignedOut, goTab: go),

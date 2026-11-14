@@ -1,0 +1,47 @@
+# Builds Mockfy.apk (the native Android app in mobile/) on every version tag and attaches it to the release.
+name: Build Android app
+
+on:
+  push:
+    tags: ['v*']
+    branches: [main]
+    paths: ['mobile/**', '.github/workflows/android.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Android project
+        run: |
+          flutter create --platforms=android --org uz.mockfy --project-name mockfy .
+          rm -f test/widget_test.dart
+          python3 tool/patch_android.py
+      - run: flutter pub get
+      - run: dart run flutter_launcher_icons
+      - run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - run: flutter build apk --release
+      - run: cp build/app/outputs/flutter-apk/app-release.apk Mockfy.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Mockfy.apk
+          path: mobile/Mockfy.apk
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: mobile/Mockfy.apk

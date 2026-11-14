@@ -1,7 +1,7 @@
 {
   "name": "mockfy-desktop",
   "productName": "Mockfy",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Mockfy IELTS practice as a desktop app",
   "main": "main.js",
   "author": "Mockfy",
@@ -20,7 +20,7 @@
     "appId": "uz.mockfy.desktop",
     "productName": "Mockfy",
     "directories": { "output": "dist", "buildResources": "build" },
-    "files": ["main.js", "offline.html", "build/icon.png", "package.json"],
+    "files": ["main.js", "preload.js", "titlebar.html", "offline.html", "build/icon.png", "package.json"],
     "protocols": [{ "name": "Mockfy", "schemes": ["mockfy"] }],
     "win": {
       "target": [{ "target": "nsis", "arch": ["x64"] }],

@@ -31,11 +31,13 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
   flutter_launcher_icons: ^0.14.1
+  flutter_native_splash: ^2.4.3
 
 flutter:
   uses-material-design: true
   assets:
     - assets/icon.png
+    - assets/hudi.png
     - assets/sfx/
 
 flutter_launcher_icons:
@@ -44,3 +46,18 @@ flutter_launcher_icons:
   image_path: assets/icon.png
   adaptive_icon_background: "#1A1A1A"
   adaptive_icon_foreground: assets/icon.png
+
+# Opening the app: Hudi's head on the app's own background straight away (like Telegram), then the
+# app's own short intro carries on from it.
+flutter_native_splash:
+  color: "#FAF9F5"
+  color_dark: "#1A1A1A"
+  image: assets/splash.png
+  image_dark: assets/splash.png
+  android_12:
+    image: assets/splash12.png
+    image_dark: assets/splash12.png
+    color: "#FAF9F5"
+    color_dark: "#1A1A1A"
+  ios: false
+  web: false

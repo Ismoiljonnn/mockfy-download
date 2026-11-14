@@ -81,16 +81,17 @@ class Intro extends StatefulWidget {
 
 class _IntroState extends State<Intro> with SingleTickerProviderStateMixin {
   late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100))..forward();
+  // carries on from the phone's splash (Hudi already on screen, in his frame): a small breath, then he
+  // grows and fades as the app comes through
   late final Animation<double> _scale = TweenSequence([
-    TweenSequenceItem(tween: Tween(begin: .55, end: 1.08).chain(CurveTween(curve: Curves.easeOutCubic)), weight: 45),
-    TweenSequenceItem(tween: Tween(begin: 1.08, end: 1.0).chain(CurveTween(curve: Curves.easeInOutSine)), weight: 20),
+    TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.08).chain(CurveTween(curve: Curves.easeOutCubic)), weight: 30),
+    TweenSequenceItem(tween: Tween(begin: 1.08, end: 1.0).chain(CurveTween(curve: Curves.easeInOutSine)), weight: 25),
     TweenSequenceItem(tween: ConstantTween(1.0), weight: 15),
-    TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.6).chain(CurveTween(curve: Curves.easeInCubic)), weight: 20),
+    TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.7).chain(CurveTween(curve: Curves.easeInCubic)), weight: 30),
   ]).animate(_c);
   late final Animation<double> _fade = TweenSequence([
-    TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0).chain(CurveTween(curve: Curves.easeOut)), weight: 30),
-    TweenSequenceItem(tween: ConstantTween(1.0), weight: 50),
-    TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0).chain(CurveTween(curve: Curves.easeIn)), weight: 20),
+    TweenSequenceItem(tween: ConstantTween(1.0), weight: 70),
+    TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0).chain(CurveTween(curve: Curves.easeIn)), weight: 30),
   ]).animate(_c);
   bool _done = false;
 
@@ -117,13 +118,13 @@ class _IntroState extends State<Intro> with SingleTickerProviderStateMixin {
             child: AnimatedBuilder(
               animation: _c,
               builder: (context, _) => ColoredBox(
-                color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: _c.value < .8 ? 1 : _fade.value),
+                color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: _fade.value),
                 child: Center(
                   child: Opacity(
                     opacity: _fade.value,
                     child: Transform.scale(
                       scale: _scale.value,
-                      child: ClipRRect(borderRadius: BorderRadius.circular(30), child: Image.asset('assets/icon.png', width: 120, height: 120, filterQuality: FilterQuality.high)),
+                      child: Image.asset('assets/hudi.png', width: 130, height: 130, filterQuality: FilterQuality.high),   // Hudi himself, no frame
                     ),
                   ),
                 ),
@@ -320,8 +321,44 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
             const NavigationDestination(icon: Icon(Icons.emoji_events_outlined), selectedIcon: Icon(Icons.emoji_events_rounded), label: 'Leaderboard'),
             NavigationDestination(icon: _MoreIcon(selected: false), selectedIcon: _MoreIcon(selected: true), label: 'More'),
           ];
+    final body = IndexedStack(key: ValueKey(ws), index: _tab, children: pages);
+    // tablets and wide windows: laid out like the desktop app, the menu down the left side with names,
+    // the pages beside it; phones keep the bar at the bottom
+    final wide = MediaQuery.sizeOf(context).shortestSide >= 600;
+    if (wide) {
+      final extended = MediaQuery.sizeOf(context).width >= 900;
+      return Scaffold(
+        body: SafeArea(
+          child: Row(children: [
+            NavigationRail(
+              extended: extended,
+              minExtendedWidth: 230,
+              selectedIndex: _tab,
+              onDestinationSelected: go,
+              labelType: extended ? NavigationRailLabelType.none : NavigationRailLabelType.all,
+              leading: Padding(
+                padding: const EdgeInsets.fromLTRB(8, 16, 8, 20),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Image.asset('assets/hudi.png', width: 34, height: 34),
+                  if (extended) ...[
+                    const SizedBox(width: 10),
+                    const Text('Mockfy', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -.5)),
+                  ],
+                ]),
+              ),
+              destinations: [
+                for (final d in destinations)
+                  NavigationRailDestination(icon: d.icon, selectedIcon: d.selectedIcon, label: Text(d.label)),
+              ],
+            ),
+            VerticalDivider(width: 1, thickness: 1, color: Theme.of(context).dividerColor.withValues(alpha: .4)),
+            Expanded(child: body),
+          ]),
+        ),
+      );
+    }
     return Scaffold(
-      body: IndexedStack(key: ValueKey(ws), index: _tab, children: pages),
+      body: body,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,   // the page names its own title

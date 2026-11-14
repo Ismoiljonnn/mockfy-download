@@ -142,7 +142,7 @@ class Avatar extends StatelessWidget {
   Widget build(BuildContext context) => CircleAvatar(
         radius: size / 2,
         backgroundColor: C.accent.withValues(alpha: .2),
-        foregroundImage: url != null ? NetworkImage(url!) : null,
+        foregroundImage: url != null ? NetworkImage(_sharp(url!, size)) : null,
         child: Text(initial, style: TextStyle(fontSize: size * .42, fontWeight: FontWeight.w700, color: C.accent)),
       );
 }
@@ -176,3 +176,11 @@ class StatTile extends StatelessWidget {
 
 void toast(BuildContext context, String msg) =>
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating));
+
+/// Google profile photos come small (…=s96-c); ask for one sized for the screen, so they are never blurry.
+String _sharp(String url, double size) {
+  if (!url.contains('googleusercontent.com')) return url;
+  final px = (size * 3).clamp(96, 600).round();
+  final m = RegExp(r'=s\d+(-c)?$');
+  return m.hasMatch(url) ? url.replaceFirst(m, '=s$px-c') : '$url=s$px-c';
+}

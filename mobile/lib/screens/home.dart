@@ -16,9 +16,8 @@ class HomeScreen extends StatelessWidget {
       Api.I.get('/api/app/me'),
       Api.I.get('/api/streak'),
       Api.I.get('/api/daily'),
-      Api.I.get('/api/league'),
     ]);
-    return {'me': r[0]['me'], 'streak': r[1]['streak'], 'daily': r[2]['map'], 'league': r[3]['league']};
+    return {'me': r[0]['me'], 'streak': r[1]['streak'], 'daily': r[2]['map']};
   }
 
   @override
@@ -32,7 +31,6 @@ class HomeScreen extends StatelessWidget {
             final m = d['me'] as Map<String, dynamic>;
             final streak = d['streak'] as Map<String, dynamic>;
             final daily = d['daily'] as Map<String, dynamic>;
-            final league = d['league'] as Map<String, dynamic>?;
             final next = _nextStage(daily);
             return ListView(padding: const EdgeInsets.all(16), children: [
               Row(children: [
@@ -91,18 +89,6 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              if (league != null) ...[
-                const SizedBox(height: 12),
-                Card(
-                  child: ListTile(
-                    onTap: () => goTab(2),
-                    leading: const Icon(Icons.emoji_events_rounded, color: C.gold),
-                    title: Text('${(league['division'] as Map)['name']} league'),
-                    subtitle: Text('You are #${(league['me'] as Map)['rank']} of ${league['players']} this week'),
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                  ),
-                ),
-              ],
               const SizedBox(height: 12),
               Card(
                 child: ListTile(

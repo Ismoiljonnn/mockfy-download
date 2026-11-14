@@ -5,7 +5,7 @@ import '../theme.dart';
 import '../widgets.dart';
 import 'profile.dart';
 
-/// The weekly league (divisions, promotion zone) and the all-time leaderboard.
+/// The leaderboard: this week and all time.
 class LeaderboardScreen extends StatelessWidget {
   const LeaderboardScreen({super.key, required this.onSignedOut});
   final VoidCallback onSignedOut;
@@ -13,48 +13,17 @@ class LeaderboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 3,
+      length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Leagues'),
-          bottom: const TabBar(tabs: [Tab(text: 'League'), Tab(text: 'This week'), Tab(text: 'All time')]),
+          title: const Text('Leaderboard'),
+          bottom: const TabBar(tabs: [Tab(text: 'This week'), Tab(text: 'All time')]),
         ),
         body: TabBarView(children: [
-          _League(onSignedOut: onSignedOut),
           _Board(period: 'week', onSignedOut: onSignedOut),
           _Board(period: 'all', onSignedOut: onSignedOut),
         ]),
       ),
-    );
-  }
-}
-
-class _League extends StatelessWidget {
-  const _League({required this.onSignedOut});
-  final VoidCallback onSignedOut;
-  @override
-  Widget build(BuildContext context) {
-    return Loader<Map<String, dynamic>>(
-      load: () async => (await Api.I.get('/api/league'))['league'] as Map<String, dynamic>,
-      onSignedOut: onSignedOut,
-      build: (context, l, reload) {
-        final table = (l['table'] as List? ?? []).cast<Map>();
-        final promote = (l['promote'] as num?)?.toInt() ?? 0;
-        final secs = (l['secondsLeft'] as num?)?.toInt() ?? 0;
-        final left = secs > 86400 ? '${secs ~/ 86400} days left' : '${secs ~/ 3600} hours left';
-        return ListView(padding: const EdgeInsets.all(16), children: [
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.shield_rounded, color: C.gold, size: 36),
-              title: Text('${(l['division'] as Map)['name']} league', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
-              subtitle: Text(l['next'] != null ? 'Top $promote move up to ${(l['next'] as Map)['name']} · $left' : left),
-            ),
-          ),
-          const SizedBox(height: 12),
-          for (var i = 0; i < table.length; i++)
-            _Row(p: table[i].cast<String, dynamic>(), rank: (table[i]['rank'] as num?)?.toInt() ?? i + 1, up: i < promote),
-        ]);
-      },
     );
   }
 }

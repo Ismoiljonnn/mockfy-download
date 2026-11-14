@@ -46,7 +46,7 @@ class MoreScreen extends StatelessWidget {
     final user = '${me['username']}';
     final on = ((me['features'] as Map?) ?? {}).cast<String, dynamic>();   // what the website has switched off stays hidden
     return Scaffold(
-      appBar: AppBar(title: const Text('More'), actions: [
+      appBar: AppBar(leading: menuButton(context), title: const Text('More'), actions: [
         IconButton(tooltip: 'Search', icon: const Icon(Icons.search_rounded), onPressed: () => _go(context, const SearchScreen())),
       ]),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 32), children: [

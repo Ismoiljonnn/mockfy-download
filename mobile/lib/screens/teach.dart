@@ -18,7 +18,7 @@ class TeachHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('My class')),
+      appBar: AppBar(leading: menuButton(context), title: const Text('My class')),
       body: Loader<Map<String, dynamic>>(
         load: () => Api.I.get('/api/app/teach'),
         onSignedOut: onSignedOut,
@@ -173,7 +173,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
         final all = (d['students'] as List).cast<Map>();
         final shown = _group == null ? all : all.where((s) => s['group_id'] == _group).toList();
         return Scaffold(
-          appBar: AppBar(title: const Text('Students'), actions: [
+          appBar: AppBar(leading: menuButton(context), title: const Text('Students'), actions: [
             IconButton(tooltip: 'New group', icon: const Icon(Icons.create_new_folder_outlined), onPressed: _newGroup),
           ]),
           floatingActionButton: FloatingActionButton.extended(
@@ -379,7 +379,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       build: (context, d, reload) {
         final items = (d['items'] as List).cast<Map>();
         return Scaffold(
-          appBar: AppBar(title: const Text('Homework')),
+          appBar: AppBar(leading: menuButton(context), title: const Text('Homework')),
           floatingActionButton: FloatingActionButton.extended(
             heroTag: 'new-homework',
             icon: const Icon(Icons.add_rounded),

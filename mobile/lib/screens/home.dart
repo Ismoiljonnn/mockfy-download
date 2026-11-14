@@ -35,6 +35,7 @@ class HomeScreen extends StatelessWidget {
             final daily = d['daily'] as Map<String, dynamic>;
             final next = _nextStage(daily);
             return ListView(padding: const EdgeInsets.all(16), children: [
+              if (menuButton(context) != null) Align(alignment: Alignment.centerLeft, child: menuButton(context)!),
               InkWell(
                 borderRadius: BorderRadius.circular(14),
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen(username: '${m['username']}', onSignedOut: onSignedOut))),

@@ -184,3 +184,18 @@ String _sharp(String url, double size) {
   final m = RegExp(r'=s\d+(-c)?$');
   return m.hasMatch(url) ? url.replaceFirst(m, '=s$px-c') : '$url=s$px-c';
 }
+
+/// Tablets held upright fold the side menu into a drawer; the tab pages then show a ☰ button.
+class ShellScope extends InheritedWidget {
+  const ShellScope({super.key, required this.openMenu, required super.child});
+  final VoidCallback? openMenu;
+  static VoidCallback? of(BuildContext context) => context.dependOnInheritedWidgetOfExactType<ShellScope>()?.openMenu;
+  @override
+  bool updateShouldNotify(ShellScope old) => old.openMenu != openMenu;
+}
+
+/// The ☰ button for a tab page's top bar: null (nothing shown) unless the menu is a drawer.
+Widget? menuButton(BuildContext context) {
+  final open = ShellScope.of(context);
+  return open == null ? null : IconButton(tooltip: 'Menu', icon: const Icon(Icons.menu_rounded), onPressed: open);
+}

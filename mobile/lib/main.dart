@@ -22,6 +22,7 @@ import 'screens/teach.dart';
 import 'screens/tests.dart';
 import 'theme.dart';
 import 'updater.dart';
+import 'widgets.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -262,6 +263,7 @@ class Shell extends StatefulWidget {
 
 class _ShellState extends State<Shell> with WidgetsBindingObserver {
   int _tab = 0;
+  final _scaffold = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
@@ -324,7 +326,31 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
     final body = IndexedStack(key: ValueKey(ws), index: _tab, children: pages);
     // tablets and wide windows: laid out like the desktop app, the menu down the left side with names,
     // the pages beside it; phones keep the bar at the bottom
-    final wide = MediaQuery.sizeOf(context).shortestSide >= 600;
+    final screen = MediaQuery.sizeOf(context);
+    final wide = screen.shortestSide >= 600;
+    if (wide && screen.height > screen.width) {
+      // a tablet held upright: the side menu folds into a drawer, opened by ☰ on each page
+      return Scaffold(
+        key: _scaffold,
+        drawer: NavigationDrawer(
+          selectedIndex: _tab,
+          onDestinationSelected: (i) { Navigator.pop(context); go(i); },
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 16, 16),
+              child: Row(children: [
+                Image.asset('assets/hudi.png', width: 34, height: 34),
+                const SizedBox(width: 10),
+                const Text('Mockfy', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -.5)),
+              ]),
+            ),
+            for (final d in destinations)
+              NavigationDrawerDestination(icon: d.icon, selectedIcon: d.selectedIcon, label: Text(d.label)),
+          ],
+        ),
+        body: ShellScope(openMenu: () => _scaffold.currentState?.openDrawer(), child: body),
+      );
+    }
     if (wide) {
       final extended = MediaQuery.sizeOf(context).width >= 900;
       return Scaffold(

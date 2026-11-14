@@ -24,6 +24,7 @@ class TestsScreen extends StatelessWidget {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
+          leading: menuButton(context),
           title: const Text('Tests'),
           bottom: const TabBar(tabs: [Tab(text: 'Full mock'), Tab(text: 'Section practice')]),
         ),

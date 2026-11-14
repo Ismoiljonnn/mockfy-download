@@ -18,6 +18,7 @@ class LeaderboardScreen extends StatelessWidget {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
+          leading: menuButton(context),
           title: const Text('Leaderboard'),
           bottom: const TabBar(tabs: [Tab(text: 'This week'), Tab(text: 'All time')]),
         ),

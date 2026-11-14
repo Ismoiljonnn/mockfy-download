@@ -1010,3 +1010,60 @@ class ResultsScreen extends StatelessWidget {
   }
 }
 
+/// A finished Listening or Reading section: every question with your answer, the right one and why.
+class ReviewScreen extends StatelessWidget {
+  const ReviewScreen({super.key, required this.attemptId, required this.section});
+  final int attemptId;
+  final int section;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Answers')),
+      body: Loader<Map<String, dynamic>>(
+        load: () async => (await Api.I.get('/api/attempts/$attemptId/review', {'section': section}))['state'] as Map<String, dynamic>,
+        build: (context, st, reload) {
+          final marking = ((st['marking'] as Map?) ?? {}).cast<String, dynamic>();
+          final answers = ((st['answers'] as Map?) ?? {}).cast<String, dynamic>();
+          final rows = <Widget>[];
+          for (final p in ((st['section'] as Map)['parts'] as List).cast<Map>()) {
+            rows.add(Padding(padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
+                child: Text('${p['title']}', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800))));
+            for (final g in (p['groups'] as List? ?? []).cast<Map>()) {
+              for (final q in (g['questions'] as List? ?? []).cast<Map>()) {
+                final m = (marking['${q['id']}'] as Map?) ?? {};
+                final marks = (m['marks'] as num?) ?? 0, worth = (m['worth'] as num?) ?? 1;
+                final ok = marks >= worth;
+                final label = q['numbers'] is List ? (q['numbers'] as List).join('–') : '${q['number']}';
+                rows.add(Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  color: (ok ? C.green : C.red).withValues(alpha: .08),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(children: [
+                        Icon(ok ? Icons.check_circle_rounded : Icons.cancel_rounded, color: ok ? C.green : C.red, size: 20),
+                        const SizedBox(width: 8),
+                        Text(label, style: const TextStyle(fontWeight: FontWeight.w800)),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text('${q['text'] ?? ''}', maxLines: 2, overflow: TextOverflow.ellipsis)),
+                      ]),
+                      const SizedBox(height: 6),
+                      Text('Your answer: ${answers['${q['id']}'] ?? '—'}'),
+                      if (!ok) Text('Answer: ${m['answer'] is List ? (m['answer'] as List).join(' / ') : m['answer'] ?? ''}',
+                          style: const TextStyle(fontWeight: FontWeight.w700)),
+                      if ('${m['explanation'] ?? ''}'.isNotEmpty)
+                        Padding(padding: const EdgeInsets.only(top: 6),
+                            child: Text('${m['explanation']}', style: TextStyle(color: Theme.of(context).hintColor))),
+                    ]),
+                  ),
+                ));
+              }
+            }
+          }
+          return ListView(padding: const EdgeInsets.all(16), children: rows);
+        },
+      ),
+    );
+  }
+}

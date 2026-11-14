@@ -38,3 +38,55 @@ if '<data android:scheme="https"/>' not in s:
 
 m.write_text(s, encoding='utf-8')
 print(s)
+
+# One permanent signing key (from the ANDROID_KEYSTORE_B64 / ANDROID_KEY_PASSWORD secrets, written to
+# android/app/upload.jks by the workflow): Android installs an update only when it is signed like the
+# version already on the phone. Without the key file the build falls back to a debug key.
+g = pathlib.Path('android/app/build.gradle.kts')
+if g.exists():
+    k = g.read_text(encoding='utf-8')
+    if 'upload.jks' not in k:
+        k = k.replace('    buildTypes {', '''    signingConfigs {
+        create("release") {
+            val ks = file("upload.jks")
+            if (ks.exists()) {
+                storeFile = ks
+                storePassword = System.getenv("ANDROID_KEY_PASSWORD")
+                keyAlias = "mockfy"
+                keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {''', 1)
+        k = k.replace('signingConfig = signingConfigs.getByName("debug")',
+                      'signingConfig = if (file("upload.jks").exists()) signingConfigs.getByName("release") else signingConfigs.getByName("debug")', 1)
+        g.write_text(k, encoding='utf-8')
+
+# Notifications: permission (Android 13+), the receivers that bring scheduled reminders back after a
+# reboot, and core library desugaring (flutter_local_notifications needs it).
+m = pathlib.Path('android/app/src/main/AndroidManifest.xml')
+s = m.read_text(encoding='utf-8')
+for perm in ('POST_NOTIFICATIONS', 'RECEIVE_BOOT_COMPLETED', 'VIBRATE'):
+    if perm not in s:
+        s = s.replace('<application', f'<uses-permission android:name="android.permission.{perm}"/>\n    <application', 1)
+if 'ScheduledNotificationReceiver' not in s:
+    s = s.replace('</application>', """        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"/>
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
+    </application>""", 1)
+m.write_text(s, encoding='utf-8')
+
+g = pathlib.Path('android/app/build.gradle.kts')
+if g.exists():
+    k = g.read_text(encoding='utf-8')
+    if 'isCoreLibraryDesugaringEnabled' not in k:
+        k = re.sub(r'compileOptions \{', 'compileOptions {\n        isCoreLibraryDesugaringEnabled = true', k, count=1)
+        k += '\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}\n'
+        g.write_text(k, encoding='utf-8')

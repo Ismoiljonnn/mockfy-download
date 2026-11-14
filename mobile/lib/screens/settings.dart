@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../notify.dart';
 import '../prefs.dart';
 import '../theme.dart';
 import '../widgets.dart';
@@ -51,7 +52,6 @@ class _BodyState extends State<_Body> {
   Future<void> _privacy(String field, Object value) async {
     try {
       await Api.I.post('/api/settings/privacy', {'field': field, 'value': value});
-      Sfx.play('tap');
     } on ApiError catch (e) {
       if (mounted) toast(context, e.message);
     }
@@ -78,7 +78,6 @@ class _BodyState extends State<_Body> {
     if (ok != true) return;
     try {
       await Api.I.post('/api/account/profile', {'name': name.text.trim(), 'username': user.text.trim()});
-      Sfx.play('right');
       await widget.reload();
     } on ApiError catch (e) {
       if (mounted) toast(context, e.message);
@@ -109,7 +108,6 @@ class _BodyState extends State<_Body> {
     if (w['active'] == true) return;
     try {
       await Api.I.post('/api/workspace/${w['have'] == true ? 'switch' : 'create'}', {'kind': '${w['kind']}'});
-      Sfx.play('right');
       if (!mounted) return;
       Navigator.popUntil(context, (r) => r.isFirst);
       Prefs.I.workspaceChanged.value++;               // the app rebuilds with this workspace's tabs
@@ -173,7 +171,7 @@ class _BodyState extends State<_Body> {
                   ButtonSegment(value: ThemeMode.dark, icon: Icon(Icons.dark_mode_rounded, size: 18)),
                 ],
                 selected: {mode},
-                onSelectionChanged: (s) { Prefs.I.setTheme(s.first); Sfx.play('tap'); },
+                onSelectionChanged: (s) => Prefs.I.setTheme(s.first),
               ),
             ]),
           ),
@@ -183,9 +181,9 @@ class _BodyState extends State<_Body> {
           builder: (context, on, _) => SwitchListTile(
             secondary: const Icon(Icons.volume_up_rounded),
             title: const Text('Sound effects'),
-            subtitle: const Text('Right and wrong answers, finished stages, purchases'),
+            subtitle: const Text('In Daily English and the games'),
             value: on,
-            onChanged: (v) { Prefs.I.setSound(v); if (v) Sfx.play('press'); },
+            onChanged: (v) { Prefs.I.setSound(v); if (v) },
           ),
         ),
         ValueListenableBuilder<bool>(
@@ -198,6 +196,7 @@ class _BodyState extends State<_Body> {
           ),
         ),
       ]),
+      _section('Notifications', [const _Reminder()]),
       _section('Privacy', [
         ListTile(
           leading: const Icon(Icons.lock_outline_rounded),
@@ -248,4 +247,52 @@ class _BodyState extends State<_Body> {
       ]),
     ]);
   }
+}
+
+/// The daily practice reminder (a phone notification at the time you pick).
+class _Reminder extends StatefulWidget {
+  const _Reminder();
+  @override
+  State<_Reminder> createState() => _ReminderState();
+}
+
+class _ReminderState extends State<_Reminder> {
+  bool _on = false;
+  TimeOfDay _at = const TimeOfDay(hour: 20, minute: 0);
+
+  @override
+  void initState() {
+    super.initState();
+    Notify.I.reminder().then((r) { if (mounted) setState(() { _on = r.on; _at = TimeOfDay(hour: r.hour, minute: r.minute); }); });
+  }
+
+  Future<void> _save() => Notify.I.setReminder(_on, hour: _at.hour, minute: _at.minute);
+
+  @override
+  Widget build(BuildContext context) => Column(children: [
+        SwitchListTile(
+          secondary: const Icon(Icons.alarm_rounded),
+          title: const Text('Daily reminder'),
+          subtitle: const Text('A nudge to practise, so your streak keeps going'),
+          value: _on,
+          onChanged: (v) { setState(() => _on = v); _save(); },
+        ),
+        if (_on)
+          ListTile(
+            leading: const Icon(Icons.schedule_rounded),
+            title: const Text('Time'),
+            trailing: Text(_at.format(context), style: const TextStyle(fontWeight: FontWeight.w700)),
+            onTap: () async {
+              final t = await showTimePicker(context: context, initialTime: _at);
+              if (t == null) return;
+              setState(() => _at = t);
+              _save();
+            },
+          ),
+        const ListTile(
+          leading: Icon(Icons.notifications_active_outlined),
+          title: Text('News from Mockfy'),
+          subtitle: Text('Results, homework and Mock Day news arrive as notifications when you open the app'),
+        ),
+      ]);
 }

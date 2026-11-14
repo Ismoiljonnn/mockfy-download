@@ -14,6 +14,8 @@ import 'screens/daily.dart';
 import 'screens/home.dart';
 import 'screens/leaderboard.dart';
 import 'screens/profile.dart';
+import 'notify.dart';
+import 'screens/more.dart';
 import 'screens/teach.dart';
 import 'screens/tests.dart';
 import 'theme.dart';
@@ -21,7 +23,7 @@ import 'updater.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Future.wait([Api.I.init(), Prefs.I.init()]);
+  await Future.wait([Api.I.init(), Prefs.I.init(), Notify.I.init()]);
   runApp(const MockfyApp());
 }
 
@@ -228,13 +230,28 @@ class Shell extends StatefulWidget {
   State<Shell> createState() => _ShellState();
 }
 
-class _ShellState extends State<Shell> {
+class _ShellState extends State<Shell> with WidgetsBindingObserver {
   int _tab = 0;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => checkForUpdate(context));   // a newer APK installs itself
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      checkForUpdate(context);                    // a newer APK installs itself
+      Notify.I.sync();                            // Mockfy's news as phone notifications, and the badge
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) Notify.I.sync();
   }
 
   void go(int i) => setState(() => _tab = i);
@@ -243,7 +260,7 @@ class _ShellState extends State<Shell> {
   Widget build(BuildContext context) {
     final ws = ((widget.me['workspaces'] as List?) ?? []).cast<Map>().where((w) => w['active'] == true).map((w) => '${w['kind']}').firstOrNull ?? 'ielts';
     final teacher = ws == 'teacher';
-    final me = ProfileScreen(username: widget.me['username'] as String, onSignedOut: widget.onSignedOut, isRoot: true);
+    final me = MoreScreen(me: widget.me, onSignedOut: widget.onSignedOut);
     final pages = teacher
         ? <Widget>[
             TeachHomeScreen(me: widget.me, onSignedOut: widget.onSignedOut, goTab: go),
@@ -260,28 +277,43 @@ class _ShellState extends State<Shell> {
           ];
     if (_tab >= pages.length) _tab = 0;
     final destinations = teacher
-        ? const [
-            NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard_rounded), label: 'Class'),
-            NavigationDestination(icon: Icon(Icons.people_alt_outlined), selectedIcon: Icon(Icons.people_alt_rounded), label: 'Students'),
-            NavigationDestination(icon: Icon(Icons.assignment_outlined), selectedIcon: Icon(Icons.assignment_rounded), label: 'Homework'),
-            NavigationDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded), label: 'Me'),
+        ? <NavigationDestination>[
+            const NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard_rounded), label: 'Class'),
+            const NavigationDestination(icon: Icon(Icons.people_alt_outlined), selectedIcon: Icon(Icons.people_alt_rounded), label: 'Students'),
+            const NavigationDestination(icon: Icon(Icons.assignment_outlined), selectedIcon: Icon(Icons.assignment_rounded), label: 'Homework'),
+            NavigationDestination(icon: _MoreIcon(selected: false), selectedIcon: _MoreIcon(selected: true), label: 'More'),
           ]
-        : const [
-            NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Home'),
-            NavigationDestination(icon: Icon(Icons.assignment_outlined), selectedIcon: Icon(Icons.assignment_rounded), label: 'Tests'),
-            NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map_rounded), label: 'Daily'),
-            NavigationDestination(icon: Icon(Icons.emoji_events_outlined), selectedIcon: Icon(Icons.emoji_events_rounded), label: 'Leaderboard'),
-            NavigationDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded), label: 'Me'),
+        : <NavigationDestination>[
+            const NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Home'),
+            const NavigationDestination(icon: Icon(Icons.assignment_outlined), selectedIcon: Icon(Icons.assignment_rounded), label: 'Tests'),
+            const NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map_rounded), label: 'Daily'),
+            const NavigationDestination(icon: Icon(Icons.emoji_events_outlined), selectedIcon: Icon(Icons.emoji_events_rounded), label: 'Leaderboard'),
+            NavigationDestination(icon: _MoreIcon(selected: false), selectedIcon: _MoreIcon(selected: true), label: 'More'),
           ];
     return Scaffold(
       body: IndexedStack(key: ValueKey(ws), index: _tab, children: pages),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,   // the page names its own title
-        height: 64,
-        onDestinationSelected: (i) { Sfx.play('tap'); go(i); },
+        height: 74,
+        onDestinationSelected: go,
         destinations: destinations,
       ),
     );
   }
+}
+
+/// The More tab's icon, with a dot when there are unread notifications.
+class _MoreIcon extends StatelessWidget {
+  const _MoreIcon({required this.selected});
+  final bool selected;
+  @override
+  Widget build(BuildContext context) => ValueListenableBuilder<int>(
+        valueListenable: Notify.I.unread,
+        builder: (context, n, _) => Badge(
+          isLabelVisible: n > 0,
+          smallSize: 9,
+          child: Icon(selected ? Icons.grid_view_rounded : Icons.grid_view_outlined),
+        ),
+      );
 }

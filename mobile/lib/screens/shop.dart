@@ -96,7 +96,7 @@ class _ItemCardState extends State<_ItemCard> {
     setState(() => _busy = true);
     try {
       await Api.I.post('/api/shop/$what', {'item': it['id']});
-      Sfx.play(what == 'buy' ? 'coin' : 'right');
+      
       if (mounted) toast(context, what == 'buy' ? '${it['name']} bought.' : '${it['name']} switched on.');
       await widget.reload();
     } on ApiError catch (e) {

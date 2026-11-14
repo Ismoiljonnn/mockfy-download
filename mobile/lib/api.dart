@@ -95,6 +95,9 @@ class Api {
     }
   }
 
+  /// The session cookies, for pages of the website shown inside the app.
+  Future<List<Cookie>> cookies() => _jar.loadForRequest(Uri.parse(kBaseUrl));
+
   /// Trades the one-time code from mockfy://auth?code=... for a session (the server sets the cookie).
   Future<bool> claim(String code) async {
     try {

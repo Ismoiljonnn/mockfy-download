@@ -31,6 +31,8 @@ class _ExamScreenState extends State<ExamScreen> {
   Timer? _saveSoon;
   bool _dirty = false;
   bool _submitting = false;
+  final Map<String, GlobalKey> _qKeys = {};
+  GlobalKey _key(String qid) => _qKeys.putIfAbsent(qid, () => GlobalKey());
 
   String get _base => '/api/attempts/${widget.attemptId}';
 
@@ -206,16 +208,22 @@ class _ExamScreenState extends State<ExamScreen> {
                 ? TabBar(isScrollable: parts.length > 3, tabs: [for (final p in parts) Tab(text: '${p['title']}')])
                 : null,
           ),
-          body: TabBarView(children: [
-            for (final p in parts)
-              _PartView(
-                key: PageStorageKey('${p['title']}'),
-                sectionKey: key,
-                part: p.cast<String, dynamic>(),
-                answers: _answers,
-                onAnswer: _answer,
-                attemptBase: _base,
-              ),
+          body: Column(children: [
+            Expanded(
+              child: TabBarView(children: [
+                for (final p in parts)
+                  _PartView(
+                    key: PageStorageKey('${p['title']}'),
+                    sectionKey: key,
+                    part: p.cast<String, dynamic>(),
+                    answers: _answers,
+                    onAnswer: _answer,
+                    attemptBase: _base,
+                    keyFor: _key,
+                  ),
+              ]),
+            ),
+            if (key == 'listening' || key == 'reading') _NumberBar(parts: parts, answers: _answers, keyFor: _key),
           ]),
         ),
       ),
@@ -224,7 +232,8 @@ class _ExamScreenState extends State<ExamScreen> {
 }
 
 class _PartView extends StatelessWidget {
-  const _PartView({super.key, required this.sectionKey, required this.part, required this.answers, required this.onAnswer, required this.attemptBase});
+  const _PartView({super.key, required this.sectionKey, required this.part, required this.answers, required this.onAnswer, required this.attemptBase, required this.keyFor});
+  final GlobalKey Function(String) keyFor;
   final String sectionKey;
   final Map<String, dynamic> part;
   final Map<String, String> answers;
@@ -244,7 +253,7 @@ class _PartView extends StatelessWidget {
       if (part['prompts'] is List)
         for (final pr in (part['prompts'] as List).cast<Map>())
           _SpeakingPrompt(prompt: pr.cast<String, dynamic>(), attemptBase: attemptBase),
-      for (final g in groups) _Group(group: g.cast<String, dynamic>(), answers: answers, onAnswer: onAnswer),
+      for (final g in groups) _Group(group: g.cast<String, dynamic>(), answers: answers, onAnswer: onAnswer, keyFor: keyFor),
     ]);
   }
 }
@@ -552,7 +561,8 @@ class _SpeakingPromptState extends State<_SpeakingPrompt> {
 
 // ---------------------------------------------------------------- Question groups
 class _Group extends StatelessWidget {
-  const _Group({required this.group, required this.answers, required this.onAnswer});
+  const _Group({required this.group, required this.answers, required this.onAnswer, required this.keyFor});
+  final GlobalKey Function(String) keyFor;
   final Map<String, dynamic> group;
   final Map<String, String> answers;
   final void Function(String, String?) onAnswer;
@@ -565,11 +575,11 @@ class _Group extends StatelessWidget {
     final hint = Theme.of(context).hintColor;
     Widget body;
     if (type == 'gap' || type == 'gap_choice') {
-      body = _Template(group: group, questions: qs, answers: answers, onAnswer: onAnswer);
+      body = _Template(group: group, questions: qs, answers: answers, onAnswer: onAnswer, keyFor: keyFor);
     } else {
       body = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         if (type == 'matching' && opts.isNotEmpty) _OptionList(title: '${group['options_title'] ?? 'Options'}', options: opts),
-        for (final q in qs) _Question(type: type, q: q, groupOptions: opts, answers: answers, onAnswer: onAnswer),
+        for (final q in qs) KeyedSubtree(key: keyFor('${q['id']}'), child: _Question(type: type, q: q, groupOptions: opts, answers: answers, onAnswer: onAnswer)),
       ]);
     }
     return Padding(
@@ -698,7 +708,8 @@ class _OptionTile extends StatelessWidget {
 
 /// Gap fill (type the words) and gap choice (pick from a list): the template's {n} gaps become fields.
 class _Template extends StatelessWidget {
-  const _Template({required this.group, required this.questions, required this.answers, required this.onAnswer});
+  const _Template({required this.group, required this.questions, required this.answers, required this.onAnswer, required this.keyFor});
+  final GlobalKey Function(String) keyFor;
   final Map<String, dynamic> group;
   final List<Map<String, dynamic>> questions;
   final Map<String, String> answers;
@@ -728,9 +739,9 @@ class _Template extends StatelessWidget {
         if (m.start > last) spans.add(Text(line.substring(last, m.start), style: TextStyle(fontWeight: heading ? FontWeight.w800 : null)));
         final qid = byNumber[m.group(1)];
         if (qid != null) {
-          spans.add(choice
+          spans.add(KeyedSubtree(key: keyFor(qid), child: choice
               ? _GapChoice(number: m.group(1)!, value: answers[qid], options: opts, onChanged: (v) => onAnswer(qid, v))
-              : _GapField(number: m.group(1)!, initial: answers[qid] ?? '', onChanged: (v) => onAnswer(qid, v.trim())));
+              : _GapField(number: m.group(1)!, initial: answers[qid] ?? '', onChanged: (v) => onAnswer(qid, v.trim()))));
         }
         last = m.end;
       }
@@ -845,6 +856,78 @@ class ResultsScreen extends StatelessWidget {
             ),
           ]);
         },
+      ),
+    );
+  }
+}
+
+/// Every question number of the section in one row: answered ones filled; a tap opens that part and
+/// brings the question into view.
+class _NumberBar extends StatelessWidget {
+  const _NumberBar({required this.parts, required this.answers, required this.keyFor});
+  final List<Map> parts;
+  final Map<String, String> answers;
+  final GlobalKey Function(String) keyFor;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = <({String label, String qid, int part})>[];
+    for (var pi = 0; pi < parts.length; pi++) {
+      for (final g in (parts[pi]['groups'] as List? ?? []).cast<Map>()) {
+        for (final q in (g['questions'] as List? ?? []).cast<Map>()) {
+          final label = q['numbers'] is List ? (q['numbers'] as List).join('–') : '${q['number']}';
+          items.add((label: label, qid: '${q['id']}', part: pi));
+        }
+      }
+    }
+    final done = items.where((i) => (answers[i.qid] ?? '').isNotEmpty).length;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Material(
+      color: Theme.of(context).colorScheme.surface,
+      elevation: 6,
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 58,
+          child: Row(children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 12, right: 6),
+              child: Text('$done/${items.length}', style: const TextStyle(fontWeight: FontWeight.w800)),
+            ),
+            Expanded(
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 11),
+                itemCount: items.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 6),
+                itemBuilder: (context, i) {
+                  final it = items[i];
+                  final answered = (answers[it.qid] ?? '').isNotEmpty;
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(9),
+                    onTap: () {
+                      DefaultTabController.of(context).animateTo(it.part);
+                      Future.delayed(const Duration(milliseconds: 350), () {
+                        final ctx = keyFor(it.qid).currentContext;
+                        if (ctx != null) Scrollable.ensureVisible(ctx, alignment: .2, duration: const Duration(milliseconds: 300));
+                      });
+                    },
+                    child: Container(
+                      constraints: const BoxConstraints(minWidth: 36),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(9),
+                        color: answered ? C.accent : (dark ? Colors.white.withValues(alpha: .08) : const Color(0xFF141413).withValues(alpha: .06)),
+                      ),
+                      child: Text(it.label, style: TextStyle(fontWeight: FontWeight.w700, color: answered ? Colors.white : null)),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ]),
+        ),
       ),
     );
   }

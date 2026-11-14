@@ -35,7 +35,16 @@ if (location.protocol === 'https:' || location.protocol === 'http:') {
     const hex = '#' + [r, g, b].map((n) => Math.round(n).toString(16).padStart(2, '0')).join('');
     ipcRenderer.send('mf-page-look', { bg: hex, dark: r * 0.299 + g * 0.587 + b * 0.114 < 150 });
   };
+  // the page knows it is in the app even when it came from a cache: room for the window buttons
+  const mark = () => {
+    const root = document.documentElement;
+    root.classList.add('mf-desktop');
+    if (process.platform === 'darwin') root.classList.add('mf-mac');
+  };
+  ipcRenderer.on('mf-full', (_e, on) => document.documentElement.classList.toggle('mf-full', !!on));
   window.addEventListener('DOMContentLoaded', () => {
+    mark();
+    ipcRenderer.send('mf-ask-full');
     send();
     new MutationObserver(() => setTimeout(send, 30)).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-dark', 'class'] });
     matchMedia('(prefers-color-scheme: dark)').addEventListener('change', send);

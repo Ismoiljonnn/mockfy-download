@@ -88,11 +88,12 @@ class ProfileScreen extends StatelessWidget {
                   title: const Text('Best streak'),
                   trailing: Text('${p['bestStreak'] ?? 0} days'),
                 ),
-                ListTile(
-                  leading: const Icon(Icons.people_alt_rounded, color: C.blue),
-                  title: const Text('Friends'),
-                  trailing: Text('${p['friendCount'] ?? 0}'),
-                ),
+                if (r['friendsOpen'] == true)
+                  ListTile(
+                    leading: const Icon(Icons.people_alt_rounded, color: C.blue),
+                    title: const Text('Friends'),
+                    trailing: Text('${p['friendCount'] ?? 0}'),
+                  ),
               ]),
             ),
             if (isMe) ...[

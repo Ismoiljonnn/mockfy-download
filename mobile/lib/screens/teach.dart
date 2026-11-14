@@ -119,7 +119,6 @@ class _StudentsScreenState extends State<StudentsScreen> {
     if (name == null || name.isEmpty) return;
     try {
       await Api.I.post('/api/teach/groups', {'name': name});
-      Sfx.play('right');
       _refresh();
     } on ApiError catch (e) {
       if (mounted) toast(context, e.message);
@@ -156,7 +155,6 @@ class _StudentsScreenState extends State<StudentsScreen> {
     if (ok != true || q.text.trim().isEmpty) return;
     try {
       final r = await Api.I.post('/api/teach/invite', {'query': q.text.trim(), 'group_id': gid});
-      Sfx.play('right');
       if (mounted) toast(context, 'Request sent to ${(r['student'] as Map?)?['name'] ?? q.text}.');
       _refresh();
     } on ApiError catch (e) {
@@ -512,7 +510,6 @@ class _NewAssignmentScreenState extends State<NewAssignmentScreen> {
         'target_band': _target,
         'note': _note.text.trim(),
       });
-      Sfx.play('right');
       if (mounted) Navigator.pop(context, true);
     } on ApiError catch (e) {
       if (mounted) toast(context, e.message);

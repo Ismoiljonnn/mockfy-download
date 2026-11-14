@@ -85,6 +85,7 @@ void showProSheet(BuildContext context, {required String who, required bool isMe
     context: context,
     showDragHandle: true,
     isScrollControlled: true,
+    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
     builder: (ctx) => SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
@@ -96,20 +97,32 @@ void showProSheet(BuildContext context, {required String who, required bool isMe
           Text(isMe ? 'You have Mockfy Pro. Here is what it gives you:' : '$who has Mockfy Pro. Here is what Pro gives:',
               textAlign: TextAlign.center, style: TextStyle(color: Theme.of(ctx).hintColor)),
           const SizedBox(height: 16),
-          for (final p in proPerks)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 5),
-              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Icon(Icons.check_rounded, color: C.gold, size: 20),
-                const SizedBox(width: 10),
-                Expanded(child: Text(p)),
-              ]),
-            ),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            decoration: BoxDecoration(color: Theme.of(ctx).brightness == Brightness.dark ? const Color(0xFF282828) : const Color(0xFFF0EEE6),
+                borderRadius: BorderRadius.circular(16)),
+            child: Column(children: [
+              for (final p in proPerks)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 5),
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Icon(Icons.check_rounded, color: C.gold, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(p)),
+                  ]),
+                ),
+            ]),
+          ),
           const SizedBox(height: 18),
           if (!viewerPro)
             FilledButton(onPressed: () => openWeb('/pricing'), child: const Text('Get Mockfy Pro'))
           else
-            OutlinedButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.onSurface, foregroundColor: Theme.of(ctx).scaffoldBackgroundColor),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Close'),
+            ),
           if (!viewerPro) TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Not now')),
         ]),
       ),
@@ -118,6 +131,7 @@ void showProSheet(BuildContext context, {required String who, required bool isMe
 }
 
 Future<void> openWeb(String path) => launchUrl(Uri.parse('$kBaseUrl$path'), mode: LaunchMode.externalApplication);
+Future<void> openExternal(String url) => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
 
 class Avatar extends StatelessWidget {
   const Avatar({super.key, this.url, required this.initial, this.size = 40});

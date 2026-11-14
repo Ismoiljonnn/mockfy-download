@@ -121,7 +121,6 @@ class _BoardViewState extends State<_BoardView> {
             suffixIcon: _search.text.isEmpty ? null : IconButton(icon: const Icon(Icons.close_rounded),
                 onPressed: () { _search.clear(); setState(() => _found = null); }),
             isDense: true,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
           ),
         ),
         const SizedBox(height: 12),

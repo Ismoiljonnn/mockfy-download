@@ -40,30 +40,51 @@ class TestsScreen extends StatelessWidget {
   }
 }
 
-class _List extends StatelessWidget {
+class _List extends StatefulWidget {
   const _List({required this.tests, required this.full, required this.reload});
   final List<Map> tests;
   final bool full;
   final Future<void> Function() reload;
+  @override
+  State<_List> createState() => _ListState();
+}
+
+class _ListState extends State<_List> {
+  String _q = '';
 
   @override
   Widget build(BuildContext context) {
-    if (tests.isEmpty) return const Center(child: Text('No tests here yet.'));
+    // numbered in the website's order, so "Mock 3" is the same test everywhere
+    final numbered = [for (var i = 0; i < widget.tests.length; i++) (i + 1, widget.tests[i])];
+    final q = _q.trim().toLowerCase();
+    final shown = q.isEmpty ? numbered : numbered.where((t) => '${t.$1} ${t.$2['title']}'.toLowerCase().contains(q)).toList();
     return ListView(padding: const EdgeInsets.all(16), children: [
-      if (full)
+      TextField(
+        onChanged: (v) => setState(() => _q = v),
+        textInputAction: TextInputAction.search,
+        decoration: InputDecoration(
+          hintText: widget.full ? 'Search full mocks' : 'Search practice tests',
+          prefixIcon: const Icon(Icons.search_rounded),
+          isDense: true,
+        ),
+      ),
+      const SizedBox(height: 12),
+      if (widget.full)
         Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: Text('All four sections in one sitting, with real timing, like the exam day.',
               style: TextStyle(color: Theme.of(context).hintColor)),
         ),
-      for (final t in tests) _TestCard(test: t.cast<String, dynamic>(), full: full, reload: reload),
+      if (shown.isEmpty) const Padding(padding: EdgeInsets.all(32), child: Center(child: Text('No tests found.'))),
+      for (final t in shown) _TestCard(test: t.$2.cast<String, dynamic>(), number: t.$1, full: widget.full, reload: widget.reload),
     ]);
   }
 }
 
 class _TestCard extends StatelessWidget {
-  const _TestCard({required this.test, required this.full, required this.reload});
+  const _TestCard({required this.test, required this.number, required this.full, required this.reload});
   final Map<String, dynamic> test;
+  final int number;
   final bool full;
   final Future<void> Function() reload;
 
@@ -90,7 +111,16 @@ class _TestCard extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('${test['title']}', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Container(
+                width: 34, height: 34,
+                alignment: Alignment.center,
+                margin: const EdgeInsets.only(right: 10),
+                decoration: BoxDecoration(color: C.accent.withValues(alpha: .15), borderRadius: BorderRadius.circular(10)),
+                child: Text('$number', style: const TextStyle(fontWeight: FontWeight.w900, color: C.accent)),
+              ),
+              Expanded(child: Text('${full ? 'Mock' : 'Test'} $number · ${test['title']}', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700))),
+            ]),
             const SizedBox(height: 6),
             Wrap(spacing: 10, runSpacing: 6, children: [
               for (final s in sections)

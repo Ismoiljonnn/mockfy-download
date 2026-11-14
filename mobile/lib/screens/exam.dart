@@ -409,7 +409,7 @@ class _WritingTaskState extends State<_WritingTask> {
         enableSuggestions: false,
         keyboardType: TextInputType.multiline,
         onChanged: (v) { setState(() {}); widget.onAnswer('${t['id']}', v); },
-        decoration: InputDecoration(hintText: 'Write your answer here', border: OutlineInputBorder(borderRadius: BorderRadius.circular(14))),
+        decoration: InputDecoration(hintText: 'Write your answer here'),
       ),
       const SizedBox(height: 6),
       Text('$_words words${min > 0 ? ' · at least $min' : ''}', textAlign: TextAlign.right,
@@ -784,7 +784,6 @@ class _GapFieldState extends State<_GapField> {
             isDense: true,
             hintText: widget.number,
             contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
       );

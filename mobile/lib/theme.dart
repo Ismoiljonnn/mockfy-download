@@ -43,10 +43,26 @@ ThemeData mockfyTheme(Brightness b) {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
     ),
+    // no outlined controls anywhere in the app: secondary buttons, chips and fields are filled
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
           minimumSize: const Size.fromHeight(48), foregroundColor: ink,
+          backgroundColor: dark ? Colors.white.withValues(alpha: .08) : const Color(0xFF141413).withValues(alpha: .06),
+          side: BorderSide.none,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+    ),
+    chipTheme: ChipThemeData(
+      side: BorderSide.none,
+      backgroundColor: dark ? Colors.white.withValues(alpha: .08) : const Color(0xFF141413).withValues(alpha: .06),
+      selectedColor: C.accent.withValues(alpha: dark ? .35 : .22),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: dark ? Colors.white.withValues(alpha: .08) : const Color(0xFF141413).withValues(alpha: .06),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: C.accent, width: 1.5)),
     ),
   );
 }

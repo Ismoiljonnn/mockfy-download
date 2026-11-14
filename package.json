@@ -19,11 +19,34 @@
   "build": {
     "appId": "uz.mockfy.desktop",
     "productName": "Mockfy",
-    "directories": { "output": "dist", "buildResources": "build" },
-    "files": ["main.js", "preload.js", "offline.html", "build/icon.png", "package.json"],
-    "protocols": [{ "name": "Mockfy", "schemes": ["mockfy"] }],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "offline.html",
+      "build/icon.png",
+      "package.json"
+    ],
+    "protocols": [
+      {
+        "name": "Mockfy",
+        "schemes": [
+          "mockfy"
+        ]
+      }
+    ],
     "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "build/icon.png",
       "artifactName": "Mockfy-Setup.${ext}"
     },
@@ -36,12 +59,34 @@
       "shortcutName": "Mockfy"
     },
     "mac": {
-      "target": [{ "target": "dmg", "arch": ["universal"] }],
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
       "icon": "build/icon.png",
       "category": "public.app-category.education",
       "artifactName": "Mockfy.${ext}",
-      "extendInfo": { "NSMicrophoneUsageDescription": "Mockfy records your answers in the Speaking test." }
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Mockfy records your answers in the Speaking test."
+      }
     },
-    "dmg": { "title": "Mockfy" }
+    "dmg": {
+      "title": "Mockfy"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Ismoiljonnn",
+        "repo": "mockfy-download",
+        "releaseType": "release"
+      }
+    ]
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
   }
 }

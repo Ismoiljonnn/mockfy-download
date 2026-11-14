@@ -36,9 +36,12 @@ jobs:
       - run: dart run flutter_launcher_icons
       - run: flutter analyze --no-fatal-infos --no-fatal-warnings
       - name: Build APK
+        env:
+          VERSION_ARGS: ${{ startsWith(github.ref, 'refs/tags/v') && format('--build-name={0} --build-number={1}', github.ref_name, github.run_number) || '' }}
         run: |
+          VERSION_ARGS="${VERSION_ARGS/--build-name=v/--build-name=}"
           set -o pipefail
-          flutter build apk --release 2>&1 | tee build.log || {
+          flutter build apk --release $VERSION_ARGS 2>&1 | tee build.log || {
             grep -iE "error|exception|failed|what went wrong|unsupported|requires" build.log | head -40 | while IFS= read -r l; do echo "::error::$l"; done
             exit 1; }
       - run: cp build/app/outputs/flutter-apk/app-release.apk Mockfy.apk

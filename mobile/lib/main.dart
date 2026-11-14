@@ -15,6 +15,7 @@ import 'screens/leaderboard.dart';
 import 'screens/profile.dart';
 import 'screens/shop.dart';
 import 'theme.dart';
+import 'updater.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -158,6 +159,12 @@ class Shell extends StatefulWidget {
 
 class _ShellState extends State<Shell> {
   int _tab = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => checkForUpdate(context));   // a newer APK installs itself
+  }
 
   void go(int i) => setState(() => _tab = i);
 

@@ -20,13 +20,20 @@ let pendingLink = process.argv.find((a) => a.startsWith(`${PROTOCOL}://`)) || nu
 if (process.env.MOCKFY_PROFILE) app.setPath('userData', path.join(app.getPath('appData'), `Mockfy-${process.env.MOCKFY_PROFILE}`));
 
 // ---- one window, and mockfy:// links reach it -------------------------------------------
-if (!app.requestSingleInstanceLock()) {
-  app.quit();
+// A second launch (a mockfy:// link from the browser, a second click on the icon) hands its link to the
+// window already open and ends at once, before it can draw a window of its own.
+const FIRST = app.requestSingleInstanceLock();
+if (!FIRST) {
+  app.exit(0);
 } else {
   app.on('second-instance', (_e, argv) => {
     const link = argv.find((a) => a.startsWith(`${PROTOCOL}://`));
     if (link) openLink(link);
-    if (win) { if (win.isMinimized()) win.restore(); win.focus(); }
+    if (win) {
+      if (win.isMinimized()) win.restore();
+      win.show();
+      win.setAlwaysOnTop(true); win.focus(); win.setAlwaysOnTop(false);     // Windows: really come to the front
+    }
   });
 }
 app.on('open-url', (e, url) => { e.preventDefault(); openLink(url); });       // macOS
@@ -71,7 +78,7 @@ function applyLook() {
   if (!win || win.isDestroyed()) return;
   win.setBackgroundColor(look.bg);
   if (!MAC) {
-    try { win.setTitleBarOverlay({ color: look.bg, symbolColor: look.dark ? '#ECECEC' : '#141413', height: BAR }); } catch { /* older systems */ }
+    try { win.setTitleBarOverlay({ color: '#00000000', symbolColor: look.dark ? '#ECECEC' : '#141413', height: BAR }); } catch { /* older systems */ }
   }
 }
 ipcMain.on('mf-page-look', (e, l) => {
@@ -87,7 +94,7 @@ function createWindow() {
     title: 'Mockfy', show: false,
     titleBarStyle: 'hidden',
     ...(MAC ? { trafficLightPosition: { x: 16, y: 18 } }
-      : { titleBarOverlay: { color: look.bg, symbolColor: look.dark ? '#ECECEC' : '#141413', height: BAR } }),
+      : { titleBarOverlay: { color: '#00000000', symbolColor: look.dark ? '#ECECEC' : '#141413', height: BAR } }),
     backgroundColor: look.bg,
     icon: path.join(__dirname, 'build', 'icon.png'),
     webPreferences: { preload: path.join(__dirname, 'preload.js'), spellcheck: false, contextIsolation: true, sandbox: true },
@@ -127,7 +134,22 @@ function createWindow() {
   if (link) { wc.loadURL(APP_URL); openLink(link); } else wc.loadURL(`${APP_URL}/dashboard`);
 }
 
-app.whenReady().then(() => {
+// ---- updates: Windows downloads a new version in the background and installs it when the app closes
+// (electron-updater reads latest.yml from the newest mockfy-download release). macOS needs a signed app
+// for this, so the Mac version is updated from the download page for now.
+function autoUpdate() {
+  if (!app.isPackaged || MAC) return;
+  let updater;
+  try { ({ autoUpdater: updater } = require('electron-updater')); } catch { return; }
+  updater.autoDownload = true;
+  updater.autoInstallOnAppQuit = true;
+  updater.on('error', () => { /* no connection or no release yet: try again later */ });
+  const check = () => updater.checkForUpdates().catch(() => {});
+  check();
+  setInterval(check, 4 * 60 * 60 * 1000);
+}
+
+if (FIRST) app.whenReady().then(() => {
   // the microphone for Speaking, notifications; only for Mockfy itself
   session.defaultSession.setPermissionRequestHandler((wc, permission, cb) => {
     cb(isOurs(wc.getURL()) && ['media', 'notifications', 'clipboard-sanitized-write', 'fullscreen'].includes(permission));
@@ -142,6 +164,7 @@ app.whenReady().then(() => {
     Menu.setApplicationMenu(null);
   }
   createWindow();
+  autoUpdate();
   app.on('activate', () => { if (!win) createWindow(); });
 });
 

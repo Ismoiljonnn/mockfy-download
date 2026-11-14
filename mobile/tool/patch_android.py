@@ -7,6 +7,8 @@ m = pathlib.Path('android/app/src/main/AndroidManifest.xml')
 s = m.read_text(encoding='utf-8')
 
 s = re.sub(r'android:label="[^"]*"', 'android:label="Mockfy"', s, count=1)
+if 'REQUEST_INSTALL_PACKAGES' not in s:      # the app installs its own updates (Android still asks the user)
+    s = s.replace('<application', '<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>\n    <application', 1)
 if 'android.permission.INTERNET' not in s:
     s = s.replace('<application', '<uses-permission android:name="android.permission.INTERNET"/>\n    <application', 1)
 

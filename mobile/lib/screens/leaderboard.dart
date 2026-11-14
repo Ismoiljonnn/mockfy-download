@@ -173,13 +173,18 @@ class _Row extends StatelessWidget {
   Widget build(BuildContext context) {
     final medal = rank == 1 ? C.gold : rank == 2 ? const Color(0xFFB8B8C0) : rank == 3 ? const Color(0xFFCD7F32) : null;
     final me = p['isMe'] == true;
+    // every learner on a card of their own (filled, no border), yours in the accent colour
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: me ? C.accent.withValues(alpha: .12) : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
+        color: me ? C.accent.withValues(alpha: dark ? .26 : .14) : Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        elevation: me ? 0 : (dark ? 0 : .6),
+        shadowColor: Colors.black26,
         child: ListTile(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           onTap: p['username'] == null ? null : () => Navigator.push(context, MaterialPageRoute(
               builder: (_) => ProfileScreen(username: '${p['username']}', onSignedOut: () {}))),
           leading: SizedBox(

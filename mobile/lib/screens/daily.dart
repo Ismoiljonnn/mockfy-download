@@ -70,6 +70,7 @@ class _MapState extends State<_Map> {
   int _away = 0;                  // 0: your stage is on screen, -1: above, 1: below
   late List<Object> _rows;        // a zone (Map with 'place') or a stage (Map with 'id')
   int _hereRow = -1;
+  int _topZone = 0;                // the zone whose stops fill the top of the screen
   final List<(int, int)> _meta = [];   // for each row: its zone's number on the page, its place in the zone
   final List<Map> _zoneOfRow = [];
 
@@ -115,7 +116,7 @@ class _MapState extends State<_Map> {
   }
 
   double _offsetOf(int row) {
-    var y = _kTop;
+    var y = 0.0;
     for (var i = 0; i < row; i++) { y += (_rows[i] as Map).containsKey('stages') ? _kZone : _kStop; }
     return y;
   }
@@ -133,54 +134,78 @@ class _MapState extends State<_Map> {
   }
 
   void _check() {
-    if (_hereRow < 0 || !_scroll.hasClients) return;
-    final top = _offsetOf(_hereRow), bottom = top + _kStop;
+    if (!_scroll.hasClients) return;
     final from = _scroll.offset, to = from + _scroll.position.viewportDimension;
-    final away = bottom < from ? -1 : top > to ? 1 : 0;
-    if (away != _away && mounted) setState(() => _away = away);
+    var away = 0;
+    if (_hereRow >= 0) {
+      final top = _offsetOf(_hereRow), bottom = top + _kStop;      // measured from the foot of the map
+      away = bottom < from ? 1 : top > to ? -1 : 0;                // above the screen = scroll up
+    }
+    // the zone of the row at the top edge of the screen
+    var zone = 0, y = 0.0;
+    for (var i = 0; i < _rows.length; i++) {
+      final h = (_rows[i] as Map).containsKey('stages') ? _kZone : _kStop;
+      if (y + h > to - 1) { zone = _meta[i].$1; break; }
+      y += h;
+      zone = _meta[i].$1;
+    }
+    if ((away != _away || zone != _topZone) && mounted) setState(() { _away = away; _topZone = zone; });
   }
 
   @override
   Widget build(BuildContext context) {
     final map = widget.map;
-    return Stack(children: [
-      ListView.builder(
-        controller: _scroll,
-        padding: const EdgeInsets.only(bottom: 90),
-        itemCount: _rows.length + 1,
-        itemBuilder: (context, i) {
-          if (i == 0) return SizedBox(height: _kTop, child: _Summary(map: map));
-          final row = _rows[i - 1] as Map;
-          final (zi, k) = _meta[i - 1];
-          final c = _zoneColours[zi % _zoneColours.length];
-          final zone = _zoneOfRow[i - 1];
-          if (row.containsKey('stages')) {
-            return SizedBox(height: _kZone, child: _ZoneBanner(zone: row.cast<String, dynamic>(), colour: c));
-          }
-          final last = k == (zone['stages'] as List).length - 1;
-          return SizedBox(
-            height: _kStop,
-            child: _Stop(stage: row.cast<String, dynamic>(), colour: c, index: k, last: last, scene: _sceneOf(zone), onDone: widget.reload),
-          );
-        },
-      ),
-      if (_hereRow >= 0)
-        Positioned(
-          right: 16, bottom: 16,
-          child: AnimatedScale(
-            scale: _away == 0 ? 0 : 1,
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOutBack,
-            child: FloatingActionButton(
-              heroTag: 'daily-here',
-              backgroundColor: C.green,
-              foregroundColor: Colors.white,
-              tooltip: 'Back to my stage',
-              onPressed: _goHere,
-              child: Icon(_away < 0 ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded),
-            ),
-          ),
+    final zones = (map['zones'] as List).cast<Map>();
+    final zone = zones.isEmpty ? null : zones[_topZone.clamp(0, zones.length - 1)].cast<String, dynamic>();
+    return Column(children: [
+      SizedBox(height: _kTop, child: _Summary(map: map)),
+      if (zone != null)
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 250),
+          child: SizedBox(key: ValueKey(_topZone), height: _kZone,
+              child: _ZoneBanner(zone: zone, colour: _zoneColours[_topZone % _zoneColours.length])),
         ),
+      Expanded(
+        child: Stack(children: [
+          ListView.builder(
+            controller: _scroll,
+            reverse: true,                         // the road starts at the foot and climbs
+            padding: const EdgeInsets.only(top: 24, bottom: 8),
+            itemCount: _rows.length,
+            itemBuilder: (context, i) {
+              final row = _rows[i] as Map;
+              final (zi, k) = _meta[i];
+              final c = _zoneColours[zi % _zoneColours.length];
+              final zone = _zoneOfRow[i];
+              if (row.containsKey('stages')) {
+                return SizedBox(height: _kZone, child: _ZoneBanner(zone: row.cast<String, dynamic>(), colour: c));
+              }
+              final last = k == (zone['stages'] as List).length - 1;
+              return SizedBox(
+                height: _kStop,
+                child: _Stop(stage: row.cast<String, dynamic>(), colour: c, index: k, last: last, scene: _sceneOf(zone), onDone: widget.reload),
+              );
+            },
+          ),
+          if (_hereRow >= 0)
+            Positioned(
+              right: 16, bottom: 16,
+              child: AnimatedScale(
+                scale: _away == 0 ? 0 : 1,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutBack,
+                child: FloatingActionButton(
+                  heroTag: 'daily-here',
+                  backgroundColor: C.green,
+                  foregroundColor: Colors.white,
+                  tooltip: 'Back to my stage',
+                  onPressed: _goHere,
+                  child: Icon(_away < 0 ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded),
+                ),
+              ),
+            ),
+        ]),
+      ),
     ]);
   }
 }
@@ -274,10 +299,11 @@ class _ScenePainter extends CustomPainter {
         Paint()..color = scene.hill.withValues(alpha: dark ? .16 : .45));
     // the road: from the middle of the row's top edge (between the stop above and this one) through this stop
     final x = _swing(index) * w, cy = h / 2 - 8;
-    final xTop = index == 0 ? x : (_swing(index - 1) * w + x) / 2;
-    final xBottom = (x + _swing(index + 1) * w) / 2;
-    final path = Path()..moveTo(xTop, index == 0 ? cy : 0)..quadraticBezierTo(x, cy * .5, x, cy);
-    if (!last) path.quadraticBezierTo(x, cy + (h - cy) * .5, xBottom, h);
+    // the road climbs: from the stop below (the one before) up to the one above (the next)
+    final xBottom = index == 0 ? x : (_swing(index - 1) * w + x) / 2;
+    final xTop = (x + _swing(index + 1) * w) / 2;
+    final path = Path()..moveTo(xBottom, index == 0 ? cy : h)..quadraticBezierTo(x, cy + (h - cy) * .5, x, cy);
+    if (!last) path.quadraticBezierTo(x, cy * .5, xTop, 0);
     canvas.drawPath(path, Paint()..color = road..strokeWidth = 30..style = PaintingStyle.stroke..strokeCap = StrokeCap.round);
     // dashed centre line
     final dash = Paint()..color = Colors.white.withValues(alpha: dark ? .25 : .8)..strokeWidth = 3..style = PaintingStyle.stroke..strokeCap = StrokeCap.round;

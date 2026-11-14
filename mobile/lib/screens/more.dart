@@ -138,6 +138,24 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 // ---------------------------------------------------------------- My results
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
+
+  Future<void> _continue(BuildContext context, Map a) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Continue this test?'),
+        content: const Text('The clock starts running again where you left it.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Not now')),
+          TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Continue')),
+        ],
+      ),
+    );
+    if (ok == true && context.mounted) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => ExamScreen(attemptId: (a['id'] as num).toInt())));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -145,23 +163,46 @@ class HistoryScreen extends StatelessWidget {
       body: Loader<Map<String, dynamic>>(
         load: () => Api.I.get('/api/history'),
         build: (context, d, reload) {
-          final items = (d['attempts'] as List? ?? []).cast<Map>();
-          if (items.isEmpty) {
+          final all = (d['attempts'] as List? ?? []).cast<Map>().where((a) => a['id'] != null).toList();
+          final open = all.where((a) => a['status'] == 'in_progress').toList();
+          final done = all.where((a) => a['status'] == 'completed').toList();
+          if (all.isEmpty) {
             return ListView(children: const [Padding(padding: EdgeInsets.all(40), child: Center(child: Text('No finished tests yet.')))]);
           }
+          String scope(Map a) => a['scope'] == 'full' ? 'Full mock' : '${a['scope']}'.isEmpty ? '' : '${a['scope']}'[0].toUpperCase() + '${a['scope']}'.substring(1);
+          String day(Map a) => '${a['completedAt'] ?? a['startedAt'] ?? ''}'.split(' ').first.split('T').first;
           return ListView(padding: const EdgeInsets.all(16), children: [
-            for (final a in items)
+            if (open.isNotEmpty) ...[
+              const Padding(padding: EdgeInsets.fromLTRB(4, 0, 4, 8), child: Text('Not finished', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800))),
+              for (final a in open)
+                Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    title: Text('${a['testTitle'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: Text('${scope(a)} · started ${day(a)}'),
+                    trailing: FilledButton(
+                      style: FilledButton.styleFrom(minimumSize: const Size(0, 38)),
+                      onPressed: () => _continue(context, a),
+                      child: const Text('Continue'),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 12),
+            ],
+            if (done.isNotEmpty) const Padding(padding: EdgeInsets.fromLTRB(4, 0, 4, 8), child: Text('Finished', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800))),
+            for (final a in done)
               Card(
                 margin: const EdgeInsets.only(bottom: 8),
                 child: ListTile(
-                  title: Text('${a['title'] ?? a['testTitle'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: Text('${a['scope'] == 'full' ? 'Full mock' : '${a['scope'] ?? ''}'} · ${'${a['completedAt'] ?? a['startedAt'] ?? ''}'.split(' ').first}'),
-                  trailing: Text('${a['band'] ?? a['overallBand'] ?? (a['status'] == 'in_progress' ? '…' : '')}',
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-                  onTap: a['id'] == null ? null : () => Navigator.push(context, MaterialPageRoute(
-                      builder: (_) => a['status'] == 'in_progress'
-                          ? ExamScreen(attemptId: (a['id'] as num).toInt())
-                          : ResultsScreen(attemptId: (a['id'] as num).toInt()))),
+                  title: Text('${a['testTitle'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text('${scope(a)} · ${day(a)}'),
+                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text(a['band'] == null ? '…' : '${a['band']}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.chevron_right_rounded),
+                  ]),
+                  // results and every answer, to look through at leisure (nothing starts again)
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ResultsScreen(attemptId: (a['id'] as num).toInt()))),
                 ),
               ),
           ]);

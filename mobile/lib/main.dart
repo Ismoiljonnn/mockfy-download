@@ -340,12 +340,55 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
     }
     return Scaffold(
       body: body,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,   // the page names its own title
-        height: 74,
-        onDestinationSelected: go,
-        destinations: destinations,
+      bottomNavigationBar: _BottomBar(selected: _tab, onSelect: go, items: destinations),
+    );
+  }
+}
+
+/// The phone's bottom bar: icon buttons as tall rounded squares (not wide flat pills), the bar itself
+/// no taller than it needs to be.
+class _BottomBar extends StatelessWidget {
+  const _BottomBar({required this.selected, required this.onSelect, required this.items});
+  final int selected;
+  final void Function(int) onSelect;
+  final List<NavigationDestination> items;
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    final dark = t.brightness == Brightness.dark;
+    return Material(
+      color: t.colorScheme.surface,
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 64,
+          child: Row(children: [
+            for (var i = 0; i < items.length; i++)
+              Expanded(
+                child: Center(
+                  child: Tooltip(
+                    message: items[i].label,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () => onSelect(i),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        width: 54, height: 48,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          color: i == selected ? (dark ? Colors.white.withValues(alpha: .1) : const Color(0xFF141413).withValues(alpha: .08)) : Colors.transparent,
+                        ),
+                        child: IconTheme(
+                          data: IconThemeData(size: 26, color: i == selected ? t.colorScheme.onSurface : t.hintColor),
+                          child: i == selected ? (items[i].selectedIcon ?? items[i].icon) : items[i].icon,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ]),
+        ),
       ),
     );
   }

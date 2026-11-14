@@ -14,6 +14,7 @@ import 'screens/daily.dart';
 import 'screens/home.dart';
 import 'screens/leaderboard.dart';
 import 'screens/profile.dart';
+import 'screens/teach.dart';
 import 'screens/tests.dart';
 import 'theme.dart';
 import 'updater.dart';
@@ -123,11 +124,13 @@ class _GateState extends State<Gate> {
     final links = AppLinks();
     _links = links.uriLinkStream.listen(_onLink);
     links.getInitialLink().then((u) { if (u != null) _onLink(u); });
+    Prefs.I.workspaceChanged.addListener(_check);
     _check();
   }
 
   @override
   void dispose() {
+    Prefs.I.workspaceChanged.removeListener(_check);
     _links?.cancel();
     super.dispose();
   }
@@ -238,27 +241,46 @@ class _ShellState extends State<Shell> {
 
   @override
   Widget build(BuildContext context) {
-    final pages = [
-      HomeScreen(me: widget.me, onSignedOut: widget.onSignedOut, goTab: go),
-      TestsScreen(onSignedOut: widget.onSignedOut),
-      DailyScreen(onSignedOut: widget.onSignedOut),
-      LeaderboardScreen(onSignedOut: widget.onSignedOut),
-      ProfileScreen(username: widget.me['username'] as String, onSignedOut: widget.onSignedOut, isRoot: true),
-    ];
+    final ws = ((widget.me['workspaces'] as List?) ?? []).cast<Map>().where((w) => w['active'] == true).map((w) => '${w['kind']}').firstOrNull ?? 'ielts';
+    final teacher = ws == 'teacher';
+    final me = ProfileScreen(username: widget.me['username'] as String, onSignedOut: widget.onSignedOut, isRoot: true);
+    final pages = teacher
+        ? <Widget>[
+            TeachHomeScreen(me: widget.me, onSignedOut: widget.onSignedOut, goTab: go),
+            StudentsScreen(onSignedOut: widget.onSignedOut),
+            AssignmentsScreen(onSignedOut: widget.onSignedOut),
+            me,
+          ]
+        : <Widget>[
+            HomeScreen(me: widget.me, onSignedOut: widget.onSignedOut, goTab: go),
+            TestsScreen(onSignedOut: widget.onSignedOut),
+            DailyScreen(onSignedOut: widget.onSignedOut),
+            LeaderboardScreen(onSignedOut: widget.onSignedOut),
+            me,
+          ];
+    if (_tab >= pages.length) _tab = 0;
+    final destinations = teacher
+        ? const [
+            NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard_rounded), label: 'Class'),
+            NavigationDestination(icon: Icon(Icons.people_alt_outlined), selectedIcon: Icon(Icons.people_alt_rounded), label: 'Students'),
+            NavigationDestination(icon: Icon(Icons.assignment_outlined), selectedIcon: Icon(Icons.assignment_rounded), label: 'Homework'),
+            NavigationDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded), label: 'Me'),
+          ]
+        : const [
+            NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Home'),
+            NavigationDestination(icon: Icon(Icons.assignment_outlined), selectedIcon: Icon(Icons.assignment_rounded), label: 'Tests'),
+            NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map_rounded), label: 'Daily'),
+            NavigationDestination(icon: Icon(Icons.emoji_events_outlined), selectedIcon: Icon(Icons.emoji_events_rounded), label: 'Leaderboard'),
+            NavigationDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded), label: 'Me'),
+          ];
     return Scaffold(
-      body: IndexedStack(index: _tab, children: pages),
+      body: IndexedStack(key: ValueKey(ws), index: _tab, children: pages),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,   // the page names its own title
         height: 64,
         onDestinationSelected: (i) { Sfx.play('tap'); go(i); },
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.assignment_outlined), selectedIcon: Icon(Icons.assignment_rounded), label: 'Tests'),
-          NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map_rounded), label: 'Daily'),
-          NavigationDestination(icon: Icon(Icons.emoji_events_outlined), selectedIcon: Icon(Icons.emoji_events_rounded), label: 'Leaderboard'),
-          NavigationDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded), label: 'Me'),
-        ],
+        destinations: destinations,
       ),
     );
   }

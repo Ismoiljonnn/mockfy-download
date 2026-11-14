@@ -19,7 +19,7 @@ dependencies:
   open_filex: ^4.5.0
   just_audio: ^0.9.42
   shared_preferences: ^2.3.3
-  record: ^5.1.2
+  record: ^6.0.0
   flutter_svg: ^2.0.16
 
 dev_dependencies:

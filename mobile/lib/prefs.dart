@@ -12,6 +12,7 @@ class Prefs {
   final theme = ValueNotifier<ThemeMode>(ThemeMode.system);
   final sound = ValueNotifier<bool>(true);
   final haptics = ValueNotifier<bool>(true);
+  final workspaceChanged = ValueNotifier<int>(0);   // bumped after a workspace switch
 
   Future<void> init() async {
     _p = await SharedPreferences.getInstance();

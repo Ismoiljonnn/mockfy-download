@@ -104,6 +104,20 @@ class _BodyState extends State<_Body> {
     }
   }
 
+  // IELTS is what this app is made for; Learning English and Teaching open on the website
+  Future<void> _workspace(Map w) async {
+    if (w['active'] == true) return;
+    try {
+      await Api.I.post('/api/workspace/${w['have'] == true ? 'switch' : 'create'}', {'kind': '${w['kind']}'});
+      Sfx.play('right');
+      if (!mounted) return;
+      Navigator.popUntil(context, (r) => r.isFirst);
+      Prefs.I.workspaceChanged.value++;               // the app rebuilds with this workspace's tabs
+    } on ApiError catch (e) {
+      if (mounted) toast(context, e.message);
+    }
+  }
+
   Widget _section(String title, List<Widget> children) => Padding(
         padding: const EdgeInsets.only(top: 18),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -126,6 +140,21 @@ class _BodyState extends State<_Body> {
           onTap: _editAccount,
         ),
         ListTile(leading: const Icon(Icons.translate_rounded), title: const Text('Language'), trailing: const Icon(Icons.chevron_right_rounded), onTap: _language),
+      ]),
+      _section('Workspace', [
+        for (final w in (me['workspaces'] as List? ?? []).cast<Map>().where((w) => w['kind'] != 'learner'))
+          ListTile(
+            leading: Icon(
+              w['kind'] == 'teacher' ? Icons.school_rounded : w['kind'] == 'learner' ? Icons.translate_rounded : Icons.assignment_rounded,
+              color: w['active'] == true ? C.accent : null,
+            ),
+            title: Text('${w['title']}', style: TextStyle(fontWeight: w['active'] == true ? FontWeight.w700 : FontWeight.w500)),
+            subtitle: Text(w['active'] == true ? 'In use' : w['have'] == true ? 'Tap to switch' : 'Add this workspace'),
+            trailing: w['active'] == true
+                ? const Icon(Icons.check_circle_rounded, color: C.accent)
+                : const Icon(Icons.chevron_right_rounded, size: 20),
+            onTap: () => _workspace(w),
+          ),
       ]),
       _section('Look and sound', [
         ValueListenableBuilder<ThemeMode>(

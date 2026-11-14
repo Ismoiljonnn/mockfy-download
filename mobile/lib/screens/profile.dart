@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../api.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import 'settings.dart';
+import 'shop.dart';
 
 const _sections = ['listening', 'reading', 'writing', 'speaking'];
 
@@ -16,7 +18,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(isRoot ? 'Me' : '@$username')),
+      appBar: AppBar(title: isRoot ? const Text('Me') : _Title(username: username)),
       body: Loader<Map<String, dynamic>>(
         load: () => Api.I.get('/api/app/profile/$username'),
         onSignedOut: onSignedOut,
@@ -108,25 +110,19 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(height: 12),
               Card(
                 child: Column(children: [
-                  ListTile(leading: const Icon(Icons.settings_rounded), title: const Text('Settings'),
-                      trailing: const Icon(Icons.open_in_new_rounded, size: 18), onTap: () => openWeb('/settings')),
-                  ListTile(leading: const Icon(Icons.help_outline_rounded), title: const Text('Help'),
-                      trailing: const Icon(Icons.open_in_new_rounded, size: 18), onTap: () => openWeb('/docs')),
                   ListTile(
-                    leading: const Icon(Icons.logout_rounded, color: C.red),
-                    title: const Text('Sign out', style: TextStyle(color: C.red)),
+                    leading: const Icon(Icons.storefront_rounded, color: C.accent),
+                    title: const Text('Shop'),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ShopScreen(onSignedOut: onSignedOut))),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.settings_rounded),
+                    title: const Text('Settings'),
+                    trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () async {
-                      final ok = await showDialog<bool>(
-                        context: context,
-                        builder: (c) => AlertDialog(
-                          title: const Text('Sign out of Mockfy?'),
-                          actions: [
-                            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-                            TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Sign out')),
-                          ],
-                        ),
-                      );
-                      if (ok == true) onSignedOut();
+                      await Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsScreen(username: username, onSignedOut: onSignedOut)));
+                      reload();
                     },
                   ),
                 ]),
@@ -137,4 +133,15 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Someone else's profile: their name in the top bar (not the @username).
+class _Title extends StatelessWidget {
+  const _Title({required this.username});
+  final String username;
+  @override
+  Widget build(BuildContext context) => FutureBuilder<Map<String, dynamic>>(
+        future: Api.I.get('/api/app/profile/$username'),
+        builder: (context, s) => Text(s.hasData ? '${(s.data!['profile'] as Map)['name']}' : ''),
+      );
 }

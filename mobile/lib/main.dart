@@ -9,30 +9,98 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'api.dart';
+import 'prefs.dart';
 import 'screens/daily.dart';
 import 'screens/home.dart';
 import 'screens/leaderboard.dart';
 import 'screens/profile.dart';
-import 'screens/shop.dart';
+import 'screens/tests.dart';
 import 'theme.dart';
 import 'updater.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Api.I.init();
+  await Future.wait([Api.I.init(), Prefs.I.init()]);
   runApp(const MockfyApp());
 }
 
 class MockfyApp extends StatelessWidget {
   const MockfyApp({super.key});
   @override
-  Widget build(BuildContext context) => MaterialApp(
-        title: 'Mockfy',
-        debugShowCheckedModeBanner: false,
-        theme: mockfyTheme(Brightness.light),
-        darkTheme: mockfyTheme(Brightness.dark),
-        home: const Gate(),
+  Widget build(BuildContext context) => ValueListenableBuilder<ThemeMode>(
+        valueListenable: Prefs.I.theme,
+        builder: (context, mode, _) => MaterialApp(
+          title: 'Mockfy',
+          debugShowCheckedModeBanner: false,
+          themeMode: mode,
+          theme: mockfyTheme(Brightness.light),
+          darkTheme: mockfyTheme(Brightness.dark),
+          home: const Intro(),
+        ),
       );
+}
+
+/// Opening the app: Hudi pops in once, clear and smooth, while the app checks the session; then the app.
+class Intro extends StatefulWidget {
+  const Intro({super.key});
+  @override
+  State<Intro> createState() => _IntroState();
+}
+
+class _IntroState extends State<Intro> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100))..forward();
+  late final Animation<double> _scale = TweenSequence([
+    TweenSequenceItem(tween: Tween(begin: .55, end: 1.08).chain(CurveTween(curve: Curves.easeOutCubic)), weight: 45),
+    TweenSequenceItem(tween: Tween(begin: 1.08, end: 1.0).chain(CurveTween(curve: Curves.easeInOutSine)), weight: 20),
+    TweenSequenceItem(tween: ConstantTween(1.0), weight: 15),
+    TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.6).chain(CurveTween(curve: Curves.easeInCubic)), weight: 20),
+  ]).animate(_c);
+  late final Animation<double> _fade = TweenSequence([
+    TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0).chain(CurveTween(curve: Curves.easeOut)), weight: 30),
+    TweenSequenceItem(tween: ConstantTween(1.0), weight: 50),
+    TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0).chain(CurveTween(curve: Curves.easeIn)), weight: 20),
+  ]).animate(_c);
+  bool _done = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _c.addStatusListener((s) { if (s == AnimationStatus.completed && mounted) setState(() => _done = true); });
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // the app is built underneath straight away, so it is ready when Hudi steps aside
+    return Stack(children: [
+      const Gate(),
+      if (!_done)
+        Positioned.fill(
+          child: IgnorePointer(
+            child: AnimatedBuilder(
+              animation: _c,
+              builder: (context, _) => ColoredBox(
+                color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: _c.value < .8 ? 1 : _fade.value),
+                child: Center(
+                  child: Opacity(
+                    opacity: _fade.value,
+                    child: Transform.scale(
+                      scale: _scale.value,
+                      child: ClipRRect(borderRadius: BorderRadius.circular(30), child: Image.asset('assets/icon.png', width: 120, height: 120, filterQuality: FilterQuality.high)),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+    ]);
+  }
 }
 
 /// Signed in → the app; signed out → the sign-in screen. Listens for mockfy://auth links all the time.
@@ -172,21 +240,23 @@ class _ShellState extends State<Shell> {
   Widget build(BuildContext context) {
     final pages = [
       HomeScreen(me: widget.me, onSignedOut: widget.onSignedOut, goTab: go),
+      TestsScreen(onSignedOut: widget.onSignedOut),
       DailyScreen(onSignedOut: widget.onSignedOut),
       LeaderboardScreen(onSignedOut: widget.onSignedOut),
-      ShopScreen(onSignedOut: widget.onSignedOut),
       ProfileScreen(username: widget.me['username'] as String, onSignedOut: widget.onSignedOut, isRoot: true),
     ];
     return Scaffold(
       body: IndexedStack(index: _tab, children: pages),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
-        onDestinationSelected: go,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,   // the page names its own title
+        height: 64,
+        onDestinationSelected: (i) { Sfx.play('tap'); go(i); },
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Home'),
+          NavigationDestination(icon: Icon(Icons.assignment_outlined), selectedIcon: Icon(Icons.assignment_rounded), label: 'Tests'),
           NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map_rounded), label: 'Daily'),
           NavigationDestination(icon: Icon(Icons.emoji_events_outlined), selectedIcon: Icon(Icons.emoji_events_rounded), label: 'Leaderboard'),
-          NavigationDestination(icon: Icon(Icons.storefront_outlined), selectedIcon: Icon(Icons.storefront_rounded), label: 'Shop'),
           NavigationDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded), label: 'Me'),
         ],
       ),

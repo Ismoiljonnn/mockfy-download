@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../api.dart';
 import '../theme.dart';
+import '../prefs.dart';
 import '../widgets.dart';
 
 /// One Daily English stage: choice, type-the-word and spot-the-mistake questions, one at a time,
-/// with hearts, the right answer and why, and the result (stars, points, streak) at the end.
+/// with the right answer and why, and the result (stars, points, streak) at the end.
 class StageScreen extends StatefulWidget {
   const StageScreen({super.key, required this.stageId, required this.title});
   final String stageId;
@@ -16,7 +17,6 @@ class StageScreen extends StatefulWidget {
 
 class _StageScreenState extends State<StageScreen> {
   List<Map<String, dynamic>> _qs = [];
-  Map<String, dynamic>? _hearts;
   int _i = 0;
   bool _loading = true;
   String? _error;
@@ -47,7 +47,6 @@ class _StageScreenState extends State<StageScreen> {
       final qs = (r['questions'] as List).cast<Map>().map((e) => e.cast<String, dynamic>()).toList();
       setState(() {
         _qs = qs;
-        _hearts = (r['hearts'] as Map?)?.cast<String, dynamic>();
         _i = qs.indexWhere((q) => !answered.containsKey(q['id']));
         if (_i < 0) _i = 0;
         _loading = false;
@@ -70,13 +69,14 @@ class _StageScreenState extends State<StageScreen> {
     setState(() => _sending = true);
     try {
       final r = await Api.I.post('/api/daily/${widget.stageId}/answer', {'question': _q['id'], 'answer': answer});
-      if (r['hearts'] is Map) _hearts = (r['hearts'] as Map).cast<String, dynamic>();
       if (r['secondChance'] == true) {
         if (mounted) toast(context, 'Second chance used. Try once more (${r['left']} left).');
         setState(() { _picked = null; _typed.clear(); });
         return;
       }
       if (r['correct'] == true) _score++;
+      Sfx.play(r['correct'] == true ? 'right' : 'error');
+      if (r['result'] is Map) Future.delayed(const Duration(milliseconds: 500), () => Sfx.play('win'));
       setState(() {
         _feedback = r;
         if (r['result'] is Map) _result = (r['result'] as Map).cast<String, dynamic>();
@@ -103,7 +103,6 @@ class _StageScreenState extends State<StageScreen> {
       return Scaffold(appBar: AppBar(), body: ErrorView(message: _error!, onRetry: _start));
     }
     if (_i >= _qs.length) return _ResultView(title: widget.title, result: _result, score: _score, total: _qs.length);
-    final hearts = _hearts;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(context)),
@@ -111,17 +110,6 @@ class _StageScreenState extends State<StageScreen> {
           value: (_i + (_feedback != null ? 1 : 0)) / _qs.length,
           minHeight: 10, borderRadius: BorderRadius.circular(6), color: C.green,
         ),
-        actions: [
-          if (hearts != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 14),
-              child: Row(children: [
-                const Icon(Icons.favorite_rounded, color: C.red),
-                const SizedBox(width: 4),
-                Text(hearts['unlimited'] == true ? '∞' : '${hearts['n']}', style: const TextStyle(fontWeight: FontWeight.w700)),
-              ]),
-            ),
-        ],
       ),
       body: SafeArea(
         child: Column(children: [
@@ -157,7 +145,9 @@ class _StageScreenState extends State<StageScreen> {
             onSubmitted: (_) { if (_canCheck) _check(); },
             decoration: InputDecoration(
               hintText: 'Your answer',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              filled: true,
+              fillColor: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: .07) : const Color(0xFF141413).withValues(alpha: .05),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
             ),
           ),
         ];
@@ -174,33 +164,38 @@ class _StageScreenState extends State<StageScreen> {
     }
   }
 
+  // filled tiles, no borders: the fill says what it is (picked, right, wrong); the text keeps
+  // full contrast in both day and night
   Widget _option(String label, Object value, {bool wide = false}) {
     final fb = _feedback;
     final selected = _picked == value;
-    Color? border;
-    Color? fill;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final ink = Theme.of(context).colorScheme.onSurface;
+    Color fill = dark ? Colors.white.withValues(alpha: .07) : const Color(0xFF141413).withValues(alpha: .05);
+    Color text = ink;
     if (fb != null && selected) {
       final ok = fb['correct'] == true;
-      border = ok ? C.green : C.red;
-      fill = border.withValues(alpha: .12);
+      fill = (ok ? C.green : C.red).withValues(alpha: dark ? .32 : .18);
+      text = dark ? Colors.white : (ok ? const Color(0xFF1E6B47) : const Color(0xFF9B2C26));
     } else if (selected) {
-      border = C.accent;
-      fill = C.accent.withValues(alpha: .1);
+      fill = C.accent.withValues(alpha: dark ? .34 : .2);
+      text = dark ? Colors.white : const Color(0xFF8A3B1E);
     }
-    final child = OutlinedButton(
-      onPressed: fb != null ? null : () => setState(() => _picked = value),
-      style: OutlinedButton.styleFrom(
-        minimumSize: wide ? const Size.fromHeight(54) : const Size(0, 48),
-        alignment: wide ? Alignment.centerLeft : Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        backgroundColor: fill,
-        side: BorderSide(color: border ?? Theme.of(context).dividerColor, width: border != null ? 2 : 1),
-        foregroundColor: Theme.of(context).colorScheme.onSurface,
-        disabledForegroundColor: Theme.of(context).colorScheme.onSurface,
+    return Material(
+      color: fill,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: fb != null ? null : () { Sfx.play('tap'); setState(() => _picked = value); },
+        child: Container(
+          constraints: BoxConstraints(minHeight: wide ? 54 : 48),
+          width: wide ? double.infinity : null,
+          alignment: wide ? Alignment.centerLeft : Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Text(label, style: TextStyle(fontSize: 16, color: text, fontWeight: selected ? FontWeight.w700 : FontWeight.w500)),
+        ),
       ),
-      child: Text(label, style: const TextStyle(fontSize: 16)),
     );
-    return child;
   }
 
   Widget _bottomBar() {

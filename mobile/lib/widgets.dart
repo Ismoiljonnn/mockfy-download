@@ -134,7 +134,8 @@ class Avatar extends StatelessWidget {
 }
 
 class StatTile extends StatelessWidget {
-  const StatTile({super.key, required this.icon, required this.color, required this.value, required this.label});
+  const StatTile({super.key, required this.icon, required this.color, required this.value, required this.label, this.onTap});
+  final VoidCallback? onTap;
   final IconData icon;
   final Color color;
   final String value;
@@ -142,7 +143,10 @@ class StatTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Expanded(
         child: Card(
-          child: Padding(
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
             padding: const EdgeInsets.all(14),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Icon(icon, color: color),
@@ -150,6 +154,7 @@ class StatTile extends StatelessWidget {
               Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
               Text(label, style: TextStyle(color: Theme.of(context).hintColor, fontSize: 13)),
             ]),
+          ),
           ),
         ),
       );

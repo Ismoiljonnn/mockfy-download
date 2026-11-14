@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../api.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import 'profile.dart';
+import 'shop.dart';
 import 'stage.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -33,7 +35,10 @@ class HomeScreen extends StatelessWidget {
             final daily = d['daily'] as Map<String, dynamic>;
             final next = _nextStage(daily);
             return ListView(padding: const EdgeInsets.all(16), children: [
-              Row(children: [
+              InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen(username: '${m['username']}', onSignedOut: onSignedOut))),
+                child: Row(children: [
                 Avatar(url: m['avatar'] as String?, initial: (m['name'] as String? ?? '?').substring(0, 1).toUpperCase(), size: 44),
                 const SizedBox(width: 12),
                 Expanded(
@@ -46,20 +51,22 @@ class HomeScreen extends StatelessWidget {
                     ]),
                   ]),
                 ),
-              ]),
+                const Icon(Icons.chevron_right_rounded),
+              ])),
               const SizedBox(height: 16),
               _StreakCard(streak: streak),
               const SizedBox(height: 12),
               Row(children: [
                 StatTile(icon: Icons.star_rounded, color: C.gold, value: '${m['points'] ?? 0}', label: 'Points'),
                 const SizedBox(width: 12),
-                StatTile(icon: Icons.diamond_rounded, color: const Color(0xFF9B7BEA), value: '${m['crystals'] ?? 0}', label: 'Crystals'),
+                StatTile(icon: Icons.diamond_rounded, color: const Color(0xFF9B7BEA), value: '${m['crystals'] ?? 0}', label: 'Crystals · Shop',
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ShopScreen(onSignedOut: onSignedOut)))),
               ]),
               const SizedBox(height: 12),
               Card(
                 child: InkWell(
                   borderRadius: BorderRadius.circular(16),
-                  onTap: next == null ? () => goTab(1) : () async {
+                  onTap: next == null ? () => goTab(2) : () async {
                     await Navigator.push(context, MaterialPageRoute(builder: (_) => StageScreen(stageId: next['id'] as String, title: next['title'] as String)));
                     reload();
                   },
@@ -92,11 +99,11 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 12),
               Card(
                 child: ListTile(
-                  onTap: () => openWeb('/practice'),
+                  onTap: () => goTab(1),
                   leading: const Icon(Icons.headphones_rounded, color: C.blue),
                   title: const Text('Mock tests and section practice'),
                   subtitle: const Text('Listening, Reading, Writing and Speaking'),
-                  trailing: const Icon(Icons.open_in_new_rounded, size: 20),
+                  trailing: const Icon(Icons.chevron_right_rounded),
                 ),
               ),
             ]);

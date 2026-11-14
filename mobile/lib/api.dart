@@ -65,6 +65,36 @@ class Api {
     }
   }
 
+  /// Exam audio and pictures need the session too: fetched here, kept in the app's cache.
+  Future<File> media(String path) async {
+    final dir = await getTemporaryDirectory();
+    final name = path.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+    final f = File('${dir.path}${Platform.pathSeparator}$name');
+    if (await f.exists() && await f.length() > 0) return f;
+    try {
+      final r = await _dio.get<List<int>>(path, options: Options(responseType: ResponseType.bytes));
+      if ((r.statusCode ?? 500) >= 400 || r.data == null) throw ApiError('Could not load the test audio.', r.statusCode);
+      await f.writeAsBytes(r.data!);
+      return f;
+    } on DioException {
+      throw ApiError('No connection. Check your internet and try again.');
+    }
+  }
+
+  /// A recorded Speaking answer, sent the way the website sends it.
+  Future<Map<String, dynamic>> uploadAnswer(String path, File audio, String mime) async {
+    try {
+      final form = FormData.fromMap({
+        'audio': await MultipartFile.fromFile(audio.path, filename: 'answer.m4a', contentType: DioMediaType.parse(mime)),
+        'transcript': '',
+        'metrics': '{}',
+      });
+      return _check(await _dio.post(path, data: form, options: Options(headers: {'X-Mockfy-Upload': '1'})));
+    } on DioException {
+      throw ApiError('No connection. Your answer was not sent; please try again.');
+    }
+  }
+
   /// Trades the one-time code from mockfy://auth?code=... for a session (the server sets the cookie).
   Future<bool> claim(String code) async {
     try {

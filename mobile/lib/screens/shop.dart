@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../api.dart';
 import '../theme.dart';
+import '../prefs.dart';
 import '../widgets.dart';
 
 const _icons = {
-  'heart': Icons.favorite_rounded,
   'streak_freeze': Icons.ac_unit_rounded,
   'streak_restore': Icons.restore_rounded,
   'boost_x2': Icons.bolt_rounded,
@@ -30,7 +30,7 @@ class ShopScreen extends StatelessWidget {
         onSignedOut: onSignedOut,
         build: (context, s, reload) {
           final items = (s['items'] as List).cast<Map>().map((e) => e.cast<String, dynamic>())
-              .where((it) => it['kind'] == 'use' || it['kind'] == 'heart').toList();
+              .where((it) => it['kind'] == 'use').toList();
           return ListView(padding: const EdgeInsets.all(16), children: [
             Card(
               child: Padding(
@@ -96,6 +96,7 @@ class _ItemCardState extends State<_ItemCard> {
     setState(() => _busy = true);
     try {
       await Api.I.post('/api/shop/$what', {'item': it['id']});
+      Sfx.play(what == 'buy' ? 'coin' : 'right');
       if (mounted) toast(context, what == 'buy' ? '${it['name']} bought.' : '${it['name']} switched on.');
       await widget.reload();
     } on ApiError catch (e) {

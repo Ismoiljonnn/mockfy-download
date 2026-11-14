@@ -183,7 +183,7 @@ class _BodyState extends State<_Body> {
             title: const Text('Sound effects'),
             subtitle: const Text('In Daily English and the games'),
             value: on,
-            onChanged: (v) { Prefs.I.setSound(v); if (v) },
+            onChanged: Prefs.I.setSound,
           ),
         ),
         ValueListenableBuilder<bool>(

@@ -10,6 +10,8 @@ import '../theme.dart';
 import '../webpage.dart';
 import '../widgets.dart';
 import 'exam.dart';
+import 'games.dart';
+import 'mockday.dart';
 import 'profile.dart';
 import 'settings.dart';
 import 'shop.dart';
@@ -62,11 +64,9 @@ class MoreScreen extends StatelessWidget {
           ),
         ),
         group('Practise', [
-          tile(Icons.sports_esports_rounded, C.accent, 'Games', const WebPage(title: 'Games', path: '/games')),
-          tile(Icons.style_rounded, C.green, 'My words', const WebPage(title: 'My words', path: '/vocab')),
-          tile(Icons.record_voice_over_rounded, const Color(0xFF9B7BEA), 'Shadowing', const WebPage(title: 'Shadowing', path: '/shadowing')),
-          if (on['room'] == true) tile(Icons.forum_rounded, C.blue, 'Speaking Room', const WebPage(title: 'Speaking Room', path: '/p2p')),
-          tile(Icons.event_rounded, C.gold, 'Mock Day', const WebPage(title: 'Mock Day', path: '/mockday')),
+          tile(Icons.sports_esports_rounded, C.accent, 'Games', const GamesScreen()),
+          tile(Icons.style_rounded, C.green, 'My words', const WordsReviewScreen()),
+          tile(Icons.event_rounded, C.gold, 'Mock Day', const MockDayScreen()),
         ]),
         group('Me', [
           ValueListenableBuilder<int>(
@@ -82,7 +82,7 @@ class MoreScreen extends StatelessWidget {
         ]),
         group('Help', [
           tile(Icons.menu_book_rounded, C.blue, 'Guide', const WebPage(title: 'Guide', path: '/docs')),
-          tile(Icons.chat_rounded, C.green, 'Send feedback', const WebPage(title: 'Feedback', path: '/docs/feedback-and-support')),
+          tile(Icons.chat_rounded, C.green, 'Send feedback', const FeedbackScreen()),
         ]),
       ]),
     );
@@ -122,9 +122,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     child: ListTile(
                       title: Text('${n['title']}', style: const TextStyle(fontWeight: FontWeight.w700)),
                       subtitle: '${n['body'] ?? ''}'.isEmpty ? null : Text('${n['body']}'),
-                      trailing: '${n['url'] ?? ''}'.isEmpty ? null : const Icon(Icons.chevron_right_rounded),
-                      onTap: '${n['url'] ?? ''}'.isEmpty ? null : () => Navigator.push(context,
-                          MaterialPageRoute(builder: (_) => WebPage(title: '${n['title']}', path: '${n['url']}'))),
+                      trailing: appScreenFor('${n['url'] ?? ''}') == null ? null : const Icon(Icons.chevron_right_rounded),
+                      onTap: appScreenFor('${n['url'] ?? ''}') == null ? null : () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => appScreenFor('${n['url']}')!)),
                     ),
                   );
                 },
@@ -287,9 +287,8 @@ class _SearchScreenState extends State<SearchScreen> {
   void _open(Map it) {
     final url = '${it['url'] ?? ''}';
     final user = RegExp(r'^/u/([^/?#]+)').firstMatch(url);
-    final page = user != null
-        ? ProfileScreen(username: user.group(1)!, onSignedOut: () {})
-        : WebPage(title: '${it['title']}', path: url);
+    final page = user != null ? ProfileScreen(username: user.group(1)!, onSignedOut: () {}) : appScreenFor(url, title: '${it['title']}');
+    if (page == null) { toast(context, 'Open this from the menu: ${it['title']}'); return; }
     Navigator.push(context, MaterialPageRoute(builder: (_) => page));
   }
 
@@ -323,4 +322,70 @@ class _SearchScreenState extends State<SearchScreen> {
       ]),
     );
   }
+}
+
+/// The app's own screen for a link of the website (help pages are the only web pages shown).
+Widget? appScreenFor(String url, {String title = 'Mockfy'}) {
+  final u = Uri.tryParse(url);
+  if (u == null || url.isEmpty) return null;
+  final path = u.path;
+  final res = RegExp(r'^/results/(\d+)').firstMatch(path);
+  if (res != null) return ResultsScreen(attemptId: int.parse(res.group(1)!));
+  final prof = RegExp(r'^/u/([^/]+)').firstMatch(path);
+  if (prof != null) return ProfileScreen(username: prof.group(1)!, onSignedOut: () {});
+  if (path.startsWith('/mockday')) return const MockDayScreen();
+  if (path.startsWith('/games')) return const GamesScreen();
+  if (path.startsWith('/vocab')) return const WordsReviewScreen();
+  if (path.startsWith('/notifications')) return const NotificationsScreen();
+  if (path.startsWith('/recommendations')) return const RecommendationsScreen();
+  if (path.startsWith('/history')) return const HistoryScreen();
+  if (path.startsWith('/docs') || path.startsWith('/blog') || path == '/privacy' || path == '/terms') return WebPage(title: title, path: url);
+  return null;
+}
+
+// ---------------------------------------------------------------- Feedback
+class FeedbackScreen extends StatefulWidget {
+  const FeedbackScreen({super.key});
+  @override
+  State<FeedbackScreen> createState() => _FeedbackScreenState();
+}
+
+class _FeedbackScreenState extends State<FeedbackScreen> {
+  String _kind = 'idea';
+  final _msg = TextEditingController();
+  bool _busy = false;
+
+  Future<void> _send() async {
+    setState(() => _busy = true);
+    try {
+      await Api.I.post('/api/feedback', {'kind': _kind, 'message': _msg.text.trim(), 'page': 'android-app'});
+      if (mounted) { toast(context, 'Thank you! The Mockfy team reads every message.'); Navigator.pop(context); }
+    } on ApiError catch (e) {
+      if (mounted) toast(context, e.message);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('Send feedback')),
+        body: ListView(padding: const EdgeInsets.all(16), children: [
+          Wrap(spacing: 8, children: [
+            for (final k in const [('idea', 'Idea'), ('bug', 'Something is wrong'), ('content', 'A test or question'), ('other', 'Other')])
+              ChoiceChip(label: Text(k.$2), selected: _kind == k.$1, onSelected: (_) => setState(() => _kind = k.$1)),
+          ]),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _msg,
+            minLines: 6,
+            maxLines: 12,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(hintText: 'Tell us what you think', filled: true,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none)),
+          ),
+          const SizedBox(height: 16),
+          FilledButton(onPressed: _busy || _msg.text.trim().length < 5 ? null : _send, child: const Text('Send')),
+        ]),
+      );
 }

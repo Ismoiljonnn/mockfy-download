@@ -30,7 +30,31 @@ class DailyScreen extends StatelessWidget {
 /// button in the corner brings you back. Every row has a fixed height, so where your stage is on the
 /// page is simply counted, never guessed.
 const double _kTop = 96, _kZone = 76, _kStop = 104;
-const _zoneColours = [Color(0xFF4CB782), Color(0xFF5B8DEF), Color(0xFFD97757), Color(0xFF9B7BEA), Color(0xFFE8A52A), Color(0xFF2BB3B1)];
+const _zoneColours = [Color(0xFF4CB782), Color(0xFFE8A52A), Color(0xFF9B7BEA), Color(0xFF2BB3B1), Color(0xFF5B8DEF), Color(0xFFD97757)];
+
+/// A zone's look: sky colours (day / night), hill colour and what stands along the road.
+class _Scene {
+  const _Scene(this.sky, this.skyDark, this.hill, this.things);
+  final List<Color> sky, skyDark;
+  final Color hill;
+  final List<String> things;
+}
+
+const _scenes = {
+  'park': _Scene([Color(0xFFDFF5E3), Color(0xFFF4FBF2)], [Color(0xFF16261B), Color(0xFF1B2A1F)], Color(0xFF8FD19E), ['🌳', '🌼', '🦆', '🌷', '🦋', '🌲', '⛲']),
+  'market': _Scene([Color(0xFFFFEBD2), Color(0xFFFFF7EC)], [Color(0xFF2B2216), Color(0xFF261F17)], Color(0xFFF2BE7A), ['🍎', '🧺', '🥖', '🍉', '⛺', '🧀', '🍋']),
+  'library': _Scene([Color(0xFFEDE6FB), Color(0xFFF8F5FE)], [Color(0xFF221D2E), Color(0xFF1F1B27)], Color(0xFFC3B2EE), ['📚', '🕯️', '📜', '🖋️', '🪑', '📖', '🦉']),
+  'seaside': _Scene([Color(0xFFD5F4F6), Color(0xFFF1FBFC)], [Color(0xFF13262A), Color(0xFF162427)], Color(0xFF8CD9DC), ['🌴', '🐚', '⛱️', '🦀', '🌊', '⛵', '🐬']),
+  'airport': _Scene([Color(0xFFDDE8FD), Color(0xFFF3F7FF)], [Color(0xFF161E2D), Color(0xFF1A2130)], Color(0xFFA9C2F4), ['✈️', '🧳', '🛫', '☁️', '🗺️', '🛬', '🎫']),
+  'london': _Scene([Color(0xFFFBE2DA), Color(0xFFFFF4F0)], [Color(0xFF2B1C18), Color(0xFF261B18)], Color(0xFFEFB3A1), ['🚌', '☂️', '🏰', '💂', '🫖', '🌉', '🕰️']),
+  'university': _Scene([Color(0xFFE2ECFA), Color(0xFFF5F8FD)], [Color(0xFF18202B), Color(0xFF1B222C)], Color(0xFFB1C8EA), ['🎓', '🏛️', '🔬', '📐', '🧪', '🎒', '🌐']),
+  'centre': _Scene([Color(0xFFFFF0CF), Color(0xFFFFF9EA)], [Color(0xFF2A2412), Color(0xFF262113)], Color(0xFFF1CF7C), ['🏆', '⭐', '🎯', '📝', '🥇', '🎉', '✨']),
+};
+const _defaultScene = _Scene([Color(0xFFE8F0EA), Color(0xFFF7FAF7)], [Color(0xFF1C221D), Color(0xFF1E231F)], Color(0xFFB9D7BF), ['🌳', '⭐', '🌼']);
+_Scene _sceneOf(Map zone) => _scenes['${zone['scene']}'] ?? _defaultScene;
+
+/// x position (0..1 of the width) of the k-th stop of a zone: the road swings left and right.
+double _swing(int k) => .5 + sin(k * pi / 3) * .26;
 
 class _Map extends StatefulWidget {
   const _Map({required this.map, required this.reload});
@@ -46,6 +70,7 @@ class _MapState extends State<_Map> {
   late List<Object> _rows;        // a zone (Map with 'place') or a stage (Map with 'id')
   int _hereRow = -1;
   final List<(int, int)> _meta = [];   // for each row: its zone's number on the page, its place in the zone
+  final List<Map> _zoneOfRow = [];
 
   @override
   void initState() {
@@ -70,16 +95,19 @@ class _MapState extends State<_Map> {
   void _layout() {
     _rows = [];
     _meta.clear();
+    _zoneOfRow.clear();
     _hereRow = -1;
     var zi = 0;
     for (final z in (widget.map['zones'] as List).cast<Map>()) {
       _rows.add(z);
       _meta.add((zi, 0));
+      _zoneOfRow.add(z);
       var k = 0;
       for (final st in (z['stages'] as List).cast<Map>()) {
         if (_hereRow < 0 && st['status'] == 'open') _hereRow = _rows.length;
         _rows.add(st);
         _meta.add((zi, k++));
+        _zoneOfRow.add(z);
       }
       zi++;
     }
@@ -124,12 +152,14 @@ class _MapState extends State<_Map> {
           final row = _rows[i - 1] as Map;
           final (zi, k) = _meta[i - 1];
           final c = _zoneColours[zi % _zoneColours.length];
+          final zone = _zoneOfRow[i - 1];
           if (row.containsKey('stages')) {
             return SizedBox(height: _kZone, child: _ZoneBanner(zone: row.cast<String, dynamic>(), colour: c));
           }
+          final last = k == (zone['stages'] as List).length - 1;
           return SizedBox(
             height: _kStop,
-            child: _Stop(stage: row.cast<String, dynamic>(), colour: c, index: k, onDone: widget.reload),
+            child: _Stop(stage: row.cast<String, dynamic>(), colour: c, index: k, last: last, scene: _sceneOf(zone), onDone: widget.reload),
           );
         },
       ),
@@ -189,28 +219,87 @@ class _ZoneBanner extends StatelessWidget {
   final Map<String, dynamic> zone;
   final Color colour;
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(color: colour, borderRadius: BorderRadius.circular(16)),
-          child: Row(children: [
-            Text('${zone['number']}', style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900)),
-            const SizedBox(width: 14),
-            Expanded(child: Text('${zone['place'] ?? zone['id']}', overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800))),
-            const Icon(Icons.map_rounded, color: Colors.white70),
-          ]),
+  Widget build(BuildContext context) {
+    final scene = _sceneOf(zone);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter,
+          colors: dark ? scene.skyDark : scene.sky)),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: [colour, Color.lerp(colour, Colors.black, .18)!]),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [BoxShadow(color: colour.withValues(alpha: .45), offset: const Offset(0, 5))],
         ),
-      );
+        child: Row(children: [
+          Container(
+            width: 38, height: 38,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(color: Colors.white.withValues(alpha: .25), shape: BoxShape.circle),
+            child: Text('${zone['number']}', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Text('${zone['place'] ?? zone['id']}', overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w900, letterSpacing: -.2))),
+          Text(scene.things.first, style: const TextStyle(fontSize: 26)),
+        ]),
+      ),
+    );
+  }
 }
 
-/// One stop on the path: the path swings left and right, like a trail across a map.
+/// The scenery behind one stop: the zone's sky, a soft hill and two things beside the road, then the
+/// road itself (a wide band with a dashed centre line) running from the stop above to the one below.
+class _ScenePainter extends CustomPainter {
+  _ScenePainter({required this.index, required this.last, required this.scene, required this.dark, required this.road});
+  final int index;
+  final bool last;
+  final _Scene scene;
+  final bool dark;
+  final Color road;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    // sky
+    canvas.drawRect(Offset.zero & size, Paint()..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter,
+        colors: dark ? scene.skyDark : scene.sky).createShader(Offset.zero & size));
+    // a hill on the side away from the road
+    final side = _swing(index) > .5 ? -1.0 : 1.0;
+    final hx = side < 0 ? w * .12 : w * .88;
+    canvas.drawOval(Rect.fromCenter(center: Offset(hx, h * .95), width: w * .55, height: h * .7),
+        Paint()..color = scene.hill.withValues(alpha: dark ? .16 : .45));
+    // the road: from the middle of the row's top edge (between the stop above and this one) through this stop
+    final x = _swing(index) * w, cy = h / 2 - 8;
+    final xTop = index == 0 ? x : (_swing(index - 1) * w + x) / 2;
+    final xBottom = (x + _swing(index + 1) * w) / 2;
+    final path = Path()..moveTo(xTop, index == 0 ? cy : 0)..quadraticBezierTo(x, cy * .5, x, cy);
+    if (!last) path.quadraticBezierTo(x, cy + (h - cy) * .5, xBottom, h);
+    canvas.drawPath(path, Paint()..color = road..strokeWidth = 30..style = PaintingStyle.stroke..strokeCap = StrokeCap.round);
+    // dashed centre line
+    final dash = Paint()..color = Colors.white.withValues(alpha: dark ? .25 : .8)..strokeWidth = 3..style = PaintingStyle.stroke..strokeCap = StrokeCap.round;
+    for (final m in path.computeMetrics()) {
+      for (double d = 4; d < m.length; d += 16) {
+        canvas.drawPath(m.extractPath(d, min(d + 7, m.length)), dash);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ScenePainter old) => old.index != index || old.dark != dark || old.scene != scene || old.last != last;
+}
+
+/// One stop on the road: a raised round button (done: gold with stars; yours: big, with a "Start here"
+/// card; ahead: locked), with the zone's things standing beside the road.
 class _Stop extends StatelessWidget {
-  const _Stop({required this.stage, required this.colour, required this.index, required this.onDone});
+  const _Stop({required this.stage, required this.colour, required this.index, required this.last, required this.scene, required this.onDone});
   final Map<String, dynamic> stage;
   final Color colour;
   final int index;
+  final bool last;
+  final _Scene scene;
   final Future<void> Function() onDone;
 
   @override
@@ -219,54 +308,75 @@ class _Stop extends StatelessWidget {
     final locked = status == 'locked', done = status == 'done', here = status == 'open';
     final stars = (stage['stars'] as num?)?.toInt() ?? 0;
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final swing = sin(index * pi / 3);                      // -1..1 across the page
-    final fill = locked ? (dark ? const Color(0xFF3A3A3A) : const Color(0xFFDEDBD2)) : done ? C.gold : colour;
-    final size = here ? 74.0 : 62.0;
-    return LayoutBuilder(builder: (context, box) {
-      final x = box.maxWidth / 2 + swing * box.maxWidth * .26 - size / 2;
-      return Stack(clipBehavior: Clip.none, children: [
-        Positioned(
-          left: x, top: (_kStop - size) / 2 - 8,
-          child: GestureDetector(
-            onTap: locked ? null : () async {
-              await Navigator.push(context, MaterialPageRoute(builder: (_) => StageScreen(stageId: '${stage['id']}', title: '${stage['title']}')));
-              onDone();
-            },
-            child: Column(children: [
-              Container(
-                width: size, height: size,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: fill,
-                  boxShadow: [BoxShadow(color: (locked ? Colors.black : fill).withValues(alpha: locked ? .12 : .45), offset: const Offset(0, 5))],
-                  border: here ? Border.all(color: Colors.white, width: 4) : null,
-                ),
-                child: Icon(locked ? Icons.lock_rounded : done ? Icons.check_rounded : Icons.play_arrow_rounded,
-                    color: locked ? (dark ? Colors.white38 : Colors.black38) : Colors.white, size: here ? 38 : 30),
-              ),
-              if (done)
-                Row(mainAxisSize: MainAxisSize.min, children: [
-                  for (var i = 0; i < 3; i++) Icon(i < stars ? Icons.star_rounded : Icons.star_border_rounded, color: C.gold, size: 15),
+    final top = locked ? (dark ? const Color(0xFF4A4A4A) : const Color(0xFFD9D5CB)) : done ? C.gold : colour;
+    final under = Color.lerp(top, Colors.black, .28)!;
+    final size = here ? 76.0 : 64.0;
+    final road = dark ? const Color(0xFF3A3530) : const Color(0xFFE9DFC9);
+    final thingLeft = scene.things[(index * 2 + 1) % scene.things.length];
+    final thingRight = scene.things[(index * 2 + 2) % scene.things.length];
+    return RepaintBoundary(
+      child: LayoutBuilder(builder: (context, box) {
+        final w = box.maxWidth;
+        final x = _swing(index) * w - size / 2;
+        final roadOnRight = _swing(index) > .5;
+        return CustomPaint(
+          painter: _ScenePainter(index: index, last: last, scene: scene, dark: dark, road: road),
+          child: Stack(clipBehavior: Clip.none, children: [
+            // things beside the road (on the side the road is not)
+            Positioned(left: roadOnRight ? w * .1 : null, right: roadOnRight ? null : w * .1, top: 14,
+                child: Text(index.isEven ? thingLeft : thingRight, style: TextStyle(fontSize: 30, color: dark ? Colors.white.withValues(alpha: .85) : null))),
+            if (index % 3 == 1)
+              Positioned(left: roadOnRight ? w * .3 : null, right: roadOnRight ? null : w * .3, bottom: 6,
+                  child: Text(thingRight, style: const TextStyle(fontSize: 18))),
+            Positioned(
+              left: x, top: (_kStop - size) / 2 - 12,
+              child: GestureDetector(
+                onTap: locked ? null : () async {
+                  await Navigator.push(context, MaterialPageRoute(builder: (_) => StageScreen(stageId: '${stage['id']}', title: '${stage['title']}')));
+                  onDone();
+                },
+                child: Column(children: [
+                  // a raised button: the darker rim underneath shows as its side
+                  Container(
+                    width: size, height: size + 7,
+                    alignment: Alignment.topCenter,
+                    decoration: BoxDecoration(color: under, borderRadius: BorderRadius.circular(size)),
+                    child: Container(
+                      width: size, height: size,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(center: const Alignment(-.3, -.4), radius: .9,
+                            colors: [Color.lerp(top, Colors.white, .22)!, top]),
+                        border: here ? Border.all(color: Colors.white, width: 4) : null,
+                      ),
+                      child: Icon(locked ? Icons.lock_rounded : done ? Icons.check_rounded : Icons.play_arrow_rounded,
+                          color: locked ? (dark ? Colors.white38 : Colors.black38) : Colors.white, size: here ? 40 : 32),
+                    ),
+                  ),
+                  if (done)
+                    Row(mainAxisSize: MainAxisSize.min, children: [
+                      for (var i = 0; i < 3; i++) Icon(i < stars ? Icons.star_rounded : Icons.star_border_rounded, color: C.gold, size: 16),
+                    ]),
                 ]),
-            ]),
-          ),
-        ),
-        if (here)
-          Positioned(
-            left: swing > 0 ? 16 : null, right: swing > 0 ? null : 16, top: _kStop / 2 - 26,
-            child: Container(
-              constraints: BoxConstraints(maxWidth: box.maxWidth * .38),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(12),
-                  boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 3))]),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                const Text('Start here', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: C.green)),
-                Text('${stage['title']}', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
-              ]),
+              ),
             ),
-          ),
-      ]);
-    });
+            if (here)
+              Positioned(
+                left: roadOnRight ? 14 : null, right: roadOnRight ? null : 14, top: _kStop / 2 - 34,
+                child: Container(
+                  constraints: BoxConstraints(maxWidth: w * .38),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(14),
+                      boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4))]),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                    Text('START HERE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: .6, color: colour)),
+                    Text('${stage['title']}', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800)),
+                  ]),
+                ),
+              ),
+          ]),
+        );
+      }),
+    );
   }
 }
-

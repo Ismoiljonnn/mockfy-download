@@ -22,7 +22,9 @@ class Prefs {
   }
 
   void setTheme(ThemeMode m) {
-    theme.value = m;
+    if (theme.value == m) return;
+    // the tap's own animation finishes first, then the whole app changes in one smooth step
+    Future.delayed(const Duration(milliseconds: 120), () => theme.value = m);
     _p.setString('theme', m == ThemeMode.light ? 'light' : m == ThemeMode.dark ? 'dark' : 'system');
   }
 

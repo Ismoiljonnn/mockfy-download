@@ -49,6 +49,10 @@ void newsInBackground() {
   });
 }
 
+// built once: switching day / night only swaps them, nothing is worked out again
+final _light = mockfyTheme(Brightness.light);
+final _dark = mockfyTheme(Brightness.dark);
+
 class MockfyApp extends StatelessWidget {
   const MockfyApp({super.key});
   @override
@@ -58,8 +62,11 @@ class MockfyApp extends StatelessWidget {
           title: 'Mockfy',
           debugShowCheckedModeBanner: false,
           themeMode: mode,
-          theme: mockfyTheme(Brightness.light),
-          darkTheme: mockfyTheme(Brightness.dark),
+          theme: _light,
+          darkTheme: _dark,
+          // day / night fades over in a quarter of a second instead of snapping
+          themeAnimationDuration: const Duration(milliseconds: 280),
+          themeAnimationCurve: Curves.easeOutCubic,
           home: const Intro(),
         ),
       );

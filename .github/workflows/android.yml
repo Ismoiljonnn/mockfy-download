@@ -39,7 +39,12 @@ jobs:
           if [ -n "$KEYSTORE" ]; then echo "$KEYSTORE" | base64 -d > android/app/upload.jks; echo "signing with the Mockfy key"; else echo "::warning::No ANDROID_KEYSTORE_B64 secret: debug signing, updates will not install over older builds"; fi
       - run: flutter pub get
       - run: dart run flutter_launcher_icons
-      - run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Analyze
+        run: |
+          set -o pipefail
+          flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee analyze.log || {
+            grep -E "^\s*error" analyze.log | head -30 | while IFS= read -r l; do echo "::error::$l"; done
+            exit 1; }
       - name: Build APK
         env:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}

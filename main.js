@@ -107,6 +107,7 @@ function createWindow() {
   win.once('ready-to-show', () => win.show());
   ['resize', 'move', 'close'].forEach((ev) => win.on(ev, saveState));
   win.on('closed', () => { win = null; view = null; });
+  win.on('page-title-updated', (e) => e.preventDefault());   // the window is always just "Mockfy" (taskbar, Alt+Tab)
   wc.on('did-navigate', applyLook);
   // full screen (F11): no window buttons, so the page takes back the room it kept for them
   const tellFull = () => { if (!wc.isDestroyed()) wc.send('mf-full', win.isFullScreen()); };

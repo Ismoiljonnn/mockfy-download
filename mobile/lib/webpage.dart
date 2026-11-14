@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import 'api.dart';
+import 'prefs.dart';
 import 'widgets.dart';
 
 class WebPage extends StatefulWidget {
@@ -35,6 +36,8 @@ class _WebPageState extends State<WebPage> {
       ..setUserAgent('MockfyMobile/1.0 (Android) Mozilla/5.0 Mobile')
       ..setNavigationDelegate(NavigationDelegate(
         onProgress: (p) { if (mounted) setState(() => _progress = p); },
+        // the games and Daily on the website play sounds too: they follow the app's Sound effects switch
+        onPageFinished: (_) => _c?.runJavaScript("try{localStorage.setItem('mf-sound','${Prefs.I.sound.value ? 'on' : 'off'}')}catch(e){}"),
         onNavigationRequest: (r) {
           final u = Uri.tryParse(r.url);
           // our own pages stay here; anything else opens in the browser

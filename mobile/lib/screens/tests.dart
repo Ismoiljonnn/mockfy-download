@@ -135,7 +135,7 @@ class _TestCard extends StatelessWidget {
                   const SizedBox(width: 4),
                   Text('${s['title']}', style: TextStyle(color: Theme.of(context).hintColor, fontSize: 13)),
                 ]),
-              Text('· $minutes min', style: TextStyle(color: Theme.of(context).hintColor, fontSize: 13)),
+              Text('· ${tr('{n} min', {'n': minutes})}', style: TextStyle(color: Theme.of(context).hintColor, fontSize: 13)),
             ]),
             const SizedBox(height: 12),
             Wrap(spacing: 8, runSpacing: 8, children: [
@@ -143,7 +143,7 @@ class _TestCard extends StatelessWidget {
                 FilledButton(
                   style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
                   onPressed: () => _start(context, sc),
-                  child: Text(resume.containsKey(sc) ? 'Continue' : sc == 'full' ? tr('Start full mock') : 'Start ${sc[0].toUpperCase()}${sc.substring(1)}'),
+                  child: Text(resume.containsKey(sc) ? tr('Continue') : sc == 'full' ? tr('Start full mock') : tr('Start {s}', {'s': sc[0].toUpperCase() + sc.substring(1)})),
                 ),
             ]),
           ]),

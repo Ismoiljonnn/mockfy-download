@@ -133,6 +133,8 @@ T = {
 import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from app_texts_teach import T as _teach
 T.update(_teach)
+from app_texts_more import T as _more
+T.update(_more)
 out = {k: dict(zip(L, v)) for k, v in T.items()}
 assert all(len(v) == 8 for v in T.values()), [k for k, v in T.items() if len(v) != 8]
 io.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'app_texts.json'), 'w', encoding='utf-8').write(json.dumps(out, ensure_ascii=False, indent=1, sort_keys=True))

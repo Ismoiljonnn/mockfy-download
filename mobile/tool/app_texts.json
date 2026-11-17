@@ -69,6 +69,16 @@
   "uz": "3 kun",
   "zh": "3 天"
  },
+ "A hint marks the paragraph that has the answer. You have {n} left.": {
+  "ar": "يحدد التلميح الفقرة التي فيها الإجابة. تبقّى لديك {n}.",
+  "hi": "संकेत उस पैराग्राफ़ को चिह्नित करता है जिसमें जवाब है। आपके पास {n} बचे हैं।",
+  "ky": "Кеңеш жооп турган абзацты белгилейт. Сизде {n} калды.",
+  "ru": "Подсказка отмечает абзац с ответом. Осталось: {n}.",
+  "tg": "Маслиҳат сархатеро, ки ҷавоб дорад, қайд мекунад. {n} монд.",
+  "tr": "İpucu cevabın olduğu paragrafı işaretler. {n} hakkınız kaldı.",
+  "uz": "Maslahat javob bor xatboshini belgilaydi. Sizda {n} ta qoldi.",
+  "zh": "提示会标出答案所在的段落。你还剩 {n} 次。"
+ },
  "A nudge to practise, so your streak keeps going": {
   "ar": "تذكير بالتدريب حتى تستمر سلسلتك",
   "hi": "अभ्यास की याद, ताकि आपकी स्ट्रीक चलती रहे",
@@ -78,6 +88,26 @@
   "tr": "Serin devam etsin diye pratik hatırlatması",
   "uz": "Seriyangiz uzilmasligi uchun mashq eslatmasi",
   "zh": "练习提醒，让你的连续记录不中断"
+ },
+ "A stronger word for \"{w}\":": {
+  "ar": "كلمة أقوى من \"{w}\":",
+  "hi": "\"{w}\" के लिए ज़्यादा मज़बूत शब्द:",
+  "ky": "\"{w}\" үчүн күчтүүрөөк сөз:",
+  "ru": "Более сильное слово для «{w}»:",
+  "tg": "Калимаи қавитар барои \"{w}\":",
+  "tr": "\"{w}\" için daha güçlü bir kelime:",
+  "uz": "\"{w}\" uchun kuchliroq so'z:",
+  "zh": "比\"{w}\"更强的词："
+ },
+ "About IELTS band {n}": {
+  "ar": "حوالي IELTS {n}",
+  "hi": "लगभग IELTS बैंड {n}",
+  "ky": "Болжол менен IELTS {n}",
+  "ru": "Примерно IELTS {n}",
+  "tg": "Тақрибан IELTS {n}",
+  "tr": "Yaklaşık IELTS {n}",
+  "uz": "Taxminan IELTS {n}",
+  "zh": "约雅思 {n} 分"
  },
  "Active": {
   "ar": "نشِط",
@@ -99,6 +129,16 @@
   "uz": "Faollik",
   "zh": "活动"
  },
+ "Add many students": {
+  "ar": "إضافة طلاب كثيرين",
+  "hi": "कई छात्र जोड़ें",
+  "ky": "Көп окуучу кошуу",
+  "ru": "Добавить много учеников",
+  "tg": "Илова кардани хонандагони зиёд",
+  "tr": "Çok öğrenci ekle",
+  "uz": "Ko'p o'quvchi qo'shish",
+  "zh": "批量添加学生"
+ },
  "Add student": {
   "ar": "إضافة طالب",
   "hi": "छात्र जोड़ें",
@@ -118,6 +158,16 @@
   "tr": "Bu çalışma alanını ekle",
   "uz": "Bu ish maydonini qo'shish",
   "zh": "添加此工作区"
+ },
+ "After stage {n}": {
+  "ar": "بعد المرحلة {n}",
+  "hi": "स्टेज {n} के बाद",
+  "ky": "{n}-баскычтан кийин",
+  "ru": "После этапа {n}",
+  "tg": "Пас аз марҳилаи {n}",
+  "tr": "{n}. aşamadan sonra",
+  "uz": "{n}-bosqichdan keyin",
+  "zh": "第 {n} 关之后"
  },
  "Again": {
   "ar": "مرة أخرى",
@@ -159,6 +209,16 @@
   "uz": "Speaking savollariga javob berish uchun mikrofonga ruxsat bering.",
   "zh": "请允许使用麦克风来回答口语题。"
  },
+ "Answer": {
+  "ar": "الإجابة",
+  "hi": "जवाब",
+  "ky": "Жооп",
+  "ru": "Ответ",
+  "tg": "Ҷавоб",
+  "tr": "Cevap",
+  "uz": "Javob",
+  "zh": "答案"
+ },
  "Auto": {
   "ar": "تلقائي",
   "hi": "ऑटो",
@@ -188,6 +248,16 @@
   "tr": "Aşamama dön",
   "uz": "Bosqichimga qaytish",
   "zh": "回到我的关卡"
+ },
+ "Band {n}": {
+  "ar": "الدرجة {n}",
+  "hi": "बैंड {n}",
+  "ky": "Балл {n}",
+  "ru": "Балл {n}",
+  "tg": "Бал {n}",
+  "tr": "Bant {n}",
+  "uz": "Ball {n}",
+  "zh": "{n} 分"
  },
  "Bands and answers": {
   "ar": "الدرجات والإجابات",
@@ -229,6 +299,16 @@
   "uz": "Eng uzun seriya",
   "zh": "最长连续记录"
  },
+ "Buy {x}?": {
+  "ar": "شراء {x}؟",
+  "hi": "{x} ख़रीदें?",
+  "ky": "{x} сатып аласызбы?",
+  "ru": "Купить {x}?",
+  "tg": "{x} мехаред?",
+  "tr": "{x} satın alınsın mı?",
+  "uz": "{x} sotib olasizmi?",
+  "zh": "购买 {x}？"
+ },
  "Centre settings": {
   "ar": "إعدادات المركز",
   "hi": "सेंटर सेटिंग्स",
@@ -238,6 +318,26 @@
   "tr": "Merkez ayarları",
   "uz": "Markaz sozlamalari",
   "zh": "机构设置"
+ },
+ "Check your microphone": {
+  "ar": "تحقق من الميكروفون",
+  "hi": "अपना माइक्रोफ़ोन जाँचें",
+  "ky": "Микрофонду текшериңиз",
+  "ru": "Проверьте микрофон",
+  "tg": "Микрофонро санҷед",
+  "tr": "Mikrofonunuzu kontrol edin",
+  "uz": "Mikrofonni tekshiring",
+  "zh": "检查麦克风"
+ },
+ "Check your sound": {
+  "ar": "تحقق من الصوت",
+  "hi": "आवाज़ जाँचें",
+  "ky": "Үндү текшериңиз",
+  "ru": "Проверьте звук",
+  "tg": "Садоро санҷед",
+  "tr": "Sesinizi kontrol edin",
+  "uz": "Ovozni tekshiring",
+  "zh": "检查声音"
  },
  "Chest opened!": {
   "ar": "تم فتح الصندوق!",
@@ -279,6 +379,16 @@
   "uz": "Sinf",
   "zh": "班级"
  },
+ "Class leaderboard": {
+  "ar": "ترتيب الفصل",
+  "hi": "कक्षा लीडरबोर्ड",
+  "ky": "Класстын рейтинги",
+  "ru": "Рейтинг класса",
+  "tg": "Рейтинги синф",
+  "tr": "Sınıf sıralaması",
+  "uz": "Sinf reytingi",
+  "zh": "班级排行榜"
+ },
  "Clear": {
   "ar": "مسح",
   "hi": "साफ़ करें",
@@ -308,6 +418,16 @@
   "tr": "Telegram bot bağlantısını kopyala",
   "uz": "Telegram bot havolasini nusxalash",
   "zh": "复制 Telegram 机器人链接"
+ },
+ "Could not make the picture. Try again.": {
+  "ar": "تعذّر إنشاء الصورة. حاول مجددًا.",
+  "hi": "तस्वीर नहीं बन सकी। फिर कोशिश करें।",
+  "ky": "Сүрөт түзүлгөн жок. Кайра аракет кылыңыз.",
+  "ru": "Не удалось создать картинку. Попробуйте ещё раз.",
+  "tg": "Расм сохта нашуд. Боз кӯшиш кунед.",
+  "tr": "Resim oluşturulamadı. Tekrar deneyin.",
+  "uz": "Rasm yaratib bo'lmadi. Qayta urinib ko'ring.",
+  "zh": "无法生成图片，请重试。"
  },
  "Could not play the recording.": {
   "ar": "تعذّر تشغيل التسجيل.",
@@ -379,6 +499,16 @@
   "uz": "Bugunga yetarli. Ertaga qayting!",
   "zh": "今天完成了，明天再来！"
  },
+ "Everyone ({n})": {
+  "ar": "الجميع ({n})",
+  "hi": "सभी ({n})",
+  "ky": "Баары ({n})",
+  "ru": "Все ({n})",
+  "tg": "Ҳама ({n})",
+  "tr": "Herkes ({n})",
+  "uz": "Hammasi ({n})",
+  "zh": "全部（{n}）"
+ },
  "Exam month": {
   "ar": "شهر الامتحان",
   "hi": "परीक्षा का महीना",
@@ -419,6 +549,16 @@
   "uz": "Testni tugating, Mockfy keyin nima ustida ishlashni taklif qiladi.",
   "zh": "完成一次测试，Mockfy 会建议接下来练什么。"
  },
+ "Finish {s}?": {
+  "ar": "إنهاء {s}؟",
+  "hi": "{s} ख़त्म करें?",
+  "ky": "{s} бүтүрөсүзбү?",
+  "ru": "Завершить {s}?",
+  "tg": "{s} анҷом диҳед?",
+  "tr": "{s} bitirilsin mi?",
+  "uz": "{s} tugatilsinmi?",
+  "zh": "结束{s}？"
+ },
  "Finished": {
   "ar": "منتهٍ",
   "hi": "पूरा",
@@ -449,6 +589,16 @@
   "uz": "Muzlatish, kuchaytirgich, Pro",
   "zh": "冻结、加成、Pro 通行证"
  },
+ "Friends ({n})": {
+  "ar": "الأصدقاء ({n})",
+  "hi": "दोस्त ({n})",
+  "ky": "Достор ({n})",
+  "ru": "Друзья ({n})",
+  "tg": "Дӯстон ({n})",
+  "tr": "Arkadaşlar ({n})",
+  "uz": "Do'stlar ({n})",
+  "zh": "好友（{n}）"
+ },
  "Go on": {
   "ar": "متابعة",
   "hi": "जारी रखें",
@@ -468,6 +618,16 @@
   "tr": "Devam et",
   "uz": "Davom ettirish",
   "zh": "继续进行"
+ },
+ "Goal: band {n}": {
+  "ar": "الهدف: الدرجة {n}",
+  "hi": "लक्ष्य: बैंड {n}",
+  "ky": "Максат: {n} балл",
+  "ru": "Цель: балл {n}",
+  "tg": "Мақсад: бали {n}",
+  "tr": "Hedef: bant {n}",
+  "uz": "Maqsad: {n} ball",
+  "zh": "目标：{n} 分"
  },
  "Great": {
   "ar": "رائع",
@@ -508,6 +668,16 @@
   "tr": "Merhaba,",
   "uz": "Salom,",
   "zh": "你好，"
+ },
+ "Hint ({n} left)": {
+  "ar": "تلميح (تبقّى {n})",
+  "hi": "संकेत ({n} बचे)",
+  "ky": "Кеңеш ({n} калды)",
+  "ru": "Подсказка (осталось {n})",
+  "tg": "Маслиҳат ({n} монд)",
+  "tr": "İpucu ({n} kaldı)",
+  "uz": "Maslahat ({n} qoldi)",
+  "zh": "提示（剩 {n} 次）"
  },
  "I have signed in": {
   "ar": "لقد سجّلت الدخول",
@@ -569,6 +739,26 @@
   "uz": "Yuborilgan takliflar",
   "zh": "已发送的邀请"
  },
+ "It is \"{w}\"": {
+  "ar": "إنها \"{w}\"",
+  "hi": "यह \"{w}\" है",
+  "ky": "Бул \"{w}\"",
+  "ru": "Это «{w}»",
+  "tg": "Ин \"{w}\" аст",
+  "tr": "Doğrusu \"{w}\"",
+  "uz": "Bu \"{w}\"",
+  "zh": "是\"{w}\""
+ },
+ "Join my class on Mockfy": {
+  "ar": "انضم إلى فصلي على Mockfy",
+  "hi": "Mockfy पर मेरी कक्षा से जुड़ें",
+  "ky": "Mockfy'да класска кошулуңуз",
+  "ru": "Присоединяйтесь к моему классу в Mockfy",
+  "tg": "Ба синфи ман дар Mockfy ҳамроҳ шавед",
+  "tr": "Mockfy'da sınıfıma katıl",
+  "uz": "Mockfy'da sinfimga qo'shiling",
+  "zh": "加入我在 Mockfy 的班级"
+ },
  "Last year": {
   "ar": "آخر سنة",
   "hi": "पिछला एक साल",
@@ -588,6 +778,16 @@
   "tr": "Öğrenildi",
   "uz": "O'rganilgan",
   "zh": "已掌握"
+ },
+ "Leaving the app pauses the test.": {
+  "ar": "الخروج من التطبيق يوقف الاختبار مؤقتًا.",
+  "hi": "ऐप से बाहर जाने पर टेस्ट रुक जाता है।",
+  "ky": "Колдонмодон чыксаңыз, тест тындырылат.",
+  "ru": "Если выйти из приложения, тест встанет на паузу.",
+  "tg": "Баромадан аз барнома тестро таваққуф медиҳад.",
+  "tr": "Uygulamadan çıkmak testi duraklatır.",
+  "uz": "Ilovadan chiqsangiz, test pauzaga tushadi.",
+  "zh": "离开应用会暂停测试。"
  },
  "Less ": {
   "ar": "أقل ",
@@ -649,6 +849,16 @@
   "uz": "Listening, Reading, Writing va Speaking",
   "zh": "听力、阅读、写作和口语"
  },
+ "Listening…": {
+  "ar": "جارٍ الاستماع…",
+  "hi": "सुन रहे हैं…",
+  "ky": "Угулууда…",
+  "ru": "Слушаем…",
+  "tg": "Гӯш карда истодааст…",
+  "tr": "Dinleniyor…",
+  "uz": "Tinglanmoqda…",
+  "zh": "正在听…"
+ },
  "Look at the marked paragraph.": {
   "ar": "انظر إلى الفقرة المعلَّمة.",
   "hi": "चिह्नित पैराग्राफ़ देखें।",
@@ -679,6 +889,16 @@
   "uz": "Yangi havola yaratish",
   "zh": "生成新链接"
  },
+ "Meaning": {
+  "ar": "المعنى",
+  "hi": "अर्थ",
+  "ky": "Мааниси",
+  "ru": "Значение",
+  "tg": "Маъно",
+  "tr": "Anlamı",
+  "uz": "Ma'nosi",
+  "zh": "释义"
+ },
  "Menu": {
   "ar": "القائمة",
   "hi": "मेनू",
@@ -688,6 +908,16 @@
   "tr": "Menü",
   "uz": "Menyu",
   "zh": "菜单"
+ },
+ "Minutes": {
+  "ar": "دقائق",
+  "hi": "मिनट",
+  "ky": "Мүнөт",
+  "ru": "Минут",
+  "tg": "Дақиқа",
+  "tr": "Dakika",
+  "uz": "Daqiqa",
+  "zh": "分钟"
  },
  "Mock": {
   "ar": "اختبار",
@@ -759,6 +989,16 @@
   "uz": "Ko'chirildi.",
   "zh": "已移动。"
  },
+ "My IELTS result on Mockfy: mockfy.uz": {
+  "ar": "نتيجتي في IELTS على Mockfy: mockfy.uz",
+  "hi": "Mockfy पर मेरा IELTS नतीजा: mockfy.uz",
+  "ky": "Mockfy'дагы IELTS жыйынтыгым: mockfy.uz",
+  "ru": "Мой результат IELTS на Mockfy: mockfy.uz",
+  "tg": "Натиҷаи IELTS-и ман дар Mockfy: mockfy.uz",
+  "tr": "Mockfy'daki IELTS sonucum: mockfy.uz",
+  "uz": "Mockfy'dagi IELTS natijam: mockfy.uz",
+  "zh": "我在 Mockfy 的雅思成绩：mockfy.uz"
+ },
  "Name and username": {
   "ar": "الاسم واسم المستخدم",
   "hi": "नाम और यूज़रनेम",
@@ -798,6 +1038,16 @@
   "tr": "Mockfy'dan haberler",
   "uz": "Mockfy yangiliklari",
   "zh": "Mockfy 消息"
+ },
+ "Next: {x}": {
+  "ar": "التالي: {x}",
+  "hi": "अगला: {x}",
+  "ky": "Кийинки: {x}",
+  "ru": "Далее: {x}",
+  "tg": "Навбатӣ: {x}",
+  "tr": "Sıradaki: {x}",
+  "uz": "Keyingisi: {x}",
+  "zh": "下一个：{x}"
  },
  "No Mock Day is planned yet. Watch your notifications for the next one.": {
   "ar": "لا يوجد يوم اختبار مخطط بعد. تابع إشعاراتك للموعد القادم.",
@@ -909,6 +1159,16 @@
   "uz": "Bugun takrorlash uchun so'z yo'q.",
   "zh": "今天没有要复习的单词。"
  },
+ "No words were heard. Speak closer to the phone and try again.": {
+  "ar": "لم تُسمع أي كلمات. تحدّث أقرب إلى الهاتف وحاول مجددًا.",
+  "hi": "कोई शब्द सुनाई नहीं दिया। फ़ोन के पास बोलकर फिर कोशिश करें।",
+  "ky": "Сөз угулган жок. Телефонго жакыныраак сүйлөп, кайра аракет кылыңыз.",
+  "ru": "Слова не услышаны. Говорите ближе к телефону и попробуйте снова.",
+  "tg": "Калима шунида нашуд. Ба телефон наздиктар гап зада, боз кӯшиш кунед.",
+  "tr": "Hiç kelime duyulmadı. Telefona daha yakın konuşup tekrar deneyin.",
+  "uz": "So'z eshitilmadi. Telefonga yaqinroq gapirib, qayta urinib ko'ring.",
+  "zh": "没有听到声音。请靠近手机说话后重试。"
+ },
  "None": {
   "ar": "لا شيء",
   "hi": "कोई नहीं",
@@ -969,6 +1229,26 @@
   "uz": "Hozircha yangilik yo'q.",
   "zh": "暂无新内容。"
  },
+ "Now {n} · {l} to go": {
+  "ar": "الآن {n} · تبقّى {l}",
+  "hi": "अभी {n} · {l} बाकी",
+  "ky": "Азыр {n} · дагы {l}",
+  "ru": "Сейчас {n} · осталось {l}",
+  "tg": "Ҳоло {n} · боз {l}",
+  "tr": "Şimdi {n} · {l} kaldı",
+  "uz": "Hozir {n} · yana {l}",
+  "zh": "现在 {n} · 还差 {l}"
+ },
+ "One @username or email per line": {
+  "ar": "اسم مستخدم @ أو بريد واحد في كل سطر",
+  "hi": "हर लाइन में एक @username या ईमेल",
+  "ky": "Ар бир сапка бир @username же email",
+  "ru": "Один @username или email в строке",
+  "tg": "Дар ҳар сатр як @username ё email",
+  "tr": "Her satıra bir @kullanıcıadı veya e-posta",
+  "uz": "Har qatorga bitta @username yoki email",
+  "zh": "每行一个 @用户名 或邮箱"
+ },
  "One after every few stages. Finish the stage before it to open it.": {
   "ar": "واحد بعد كل بضع مراحل. أنهِ المرحلة التي قبله لفتحه.",
   "hi": "हर कुछ स्टेज के बाद एक। खोलने के लिए उससे पहले का स्टेज पूरा करें।",
@@ -978,6 +1258,16 @@
   "tr": "Her birkaç aşamada bir. Açmak için önceki aşamayı bitirin.",
   "uz": "Har bir necha bosqichdan keyin bittadan. Ochish uchun oldingi bosqichni tugating.",
   "zh": "每隔几关一个。完成它前面的一关即可打开。"
+ },
+ "Open the map": {
+  "ar": "افتح الخريطة",
+  "hi": "नक्शा खोलें",
+  "ky": "Картаны ачуу",
+  "ru": "Открыть карту",
+  "tg": "Кушодани харита",
+  "tr": "Haritayı aç",
+  "uz": "Xaritani ochish",
+  "zh": "打开地图"
  },
  "Overdue": {
   "ar": "متأخر",
@@ -999,6 +1289,16 @@
   "uz": "Ota-onalar bu sahifada o'quvchining natijalarini kirmasdan ko'radi.",
   "zh": "家长无需登录即可在此页面查看学生进度。"
  },
+ "Parts": {
+  "ar": "الأجزاء",
+  "hi": "भाग",
+  "ky": "Бөлүктөр",
+  "ru": "Части",
+  "tg": "Қисмҳо",
+  "tr": "Bölümler",
+  "uz": "Qismlar",
+  "zh": "部分"
+ },
  "Pick": {
   "ar": "اختر",
   "hi": "चुनें",
@@ -1019,6 +1319,36 @@
   "uz": "O'zingizda bor deb hisoblagan IELTS ballni tanlang. Savollar shundan boshlanib, javoblaringizga qarab o'zgaradi.",
   "zh": "选择你认为自己的雅思分数。题目从这里开始，并随你的回答调整。"
  },
+ "Picked for you": {
+  "ar": "مختار لك",
+  "hi": "आपके लिए चुने गए",
+  "ky": "Сиз үчүн тандалды",
+  "ru": "Подобрано для вас",
+  "tg": "Барои шумо интихоб шуд",
+  "tr": "Sizin için seçildi",
+  "uz": "Siz uchun tanlangan",
+  "zh": "为你精选"
+ },
+ "Play {n} different games with {s} or more points.": {
+  "ar": "العب {n} ألعاب مختلفة بـ {s} نقطة أو أكثر.",
+  "hi": "{s} या ज़्यादा पॉइंट के साथ {n} अलग खेल खेलें।",
+  "ky": "{s} же андан көп упай менен {n} түрдүү оюн ойноңуз.",
+  "ru": "Сыграйте в {n} разные игры, набрав {s} или больше очков.",
+  "tg": "{n} бозии гуногунро бо {s} хол ё бештар бозӣ кунед.",
+  "tr": "{s} veya daha fazla puanla {n} farklı oyun oynayın.",
+  "uz": "{s} va undan ko'p ball bilan {n} xil o'yin o'ynang.",
+  "zh": "玩 {n} 个不同的游戏，每个得分 {s} 或以上。"
+ },
+ "Prizes": {
+  "ar": "الجوائز",
+  "hi": "इनाम",
+  "ky": "Сыйлыктар",
+  "ru": "Призы",
+  "tg": "Ҷоизаҳо",
+  "tr": "Ödüller",
+  "uz": "Sovrinlar",
+  "zh": "奖品"
+ },
  "Pro for up to {s} students for {d} days, free.": {
   "ar": "Pro مجانًا لما يصل إلى {s} طالبًا لمدة {d} يومًا.",
   "hi": "{s} छात्रों तक {d} दिन के लिए मुफ़्त Pro।",
@@ -1028,6 +1358,26 @@
   "tr": "{s} öğrenciye kadar {d} gün ücretsiz Pro.",
   "uz": "{s} tagacha o'quvchi uchun {d} kun bepul Pro.",
   "zh": "最多 {s} 名学生免费使用 Pro {d} 天。"
+ },
+ "QR poster for the classroom": {
+  "ar": "ملصق QR للفصل",
+  "hi": "कक्षा के लिए QR पोस्टर",
+  "ky": "Класс үчүн QR плакат",
+  "ru": "QR-плакат для класса",
+  "tg": "Плакати QR барои синф",
+  "tr": "Sınıf için QR afişi",
+  "uz": "Sinf uchun QR poster",
+  "zh": "教室用二维码海报"
+ },
+ "Question {n} of {m}": {
+  "ar": "السؤال {n} من {m}",
+  "hi": "सवाल {n} / {m}",
+  "ky": "{m} суроодон {n}-си",
+  "ru": "Вопрос {n} из {m}",
+  "tg": "Саволи {n} аз {m}",
+  "tr": "Soru {n}/{m}",
+  "uz": "{m} tadan {n}-savol",
+  "zh": "第 {n} 题，共 {m} 题"
  },
  "Remove from My words": {
   "ar": "إزالة من كلماتي",
@@ -1048,6 +1398,46 @@
   "tr": "İşareti kaldır",
   "uz": "Belgini olib tashlash",
   "zh": "取消标记"
+ },
+ "Remove {name}?": {
+  "ar": "إزالة {name}؟",
+  "hi": "{name} को हटाएँ?",
+  "ky": "{name} алып салынсынбы?",
+  "ru": "Удалить {name}?",
+  "tg": "{name} хориҷ карда шавад?",
+  "tr": "{name} kaldırılsın mı?",
+  "uz": "{name} olib tashlansinmi?",
+  "zh": "移除 {name}？"
+ },
+ "Removed": {
+  "ar": "تمت الإزالة",
+  "hi": "हटा दिया",
+  "ky": "Алып салынды",
+  "ru": "Удалено",
+  "tg": "Хориҷ шуд",
+  "tr": "Kaldırıldı",
+  "uz": "Olib tashlandi",
+  "zh": "已移除"
+ },
+ "Request sent": {
+  "ar": "تم إرسال الطلب",
+  "hi": "अनुरोध भेजा गया",
+  "ky": "Сурам жөнөтүлдү",
+  "ru": "Запрос отправлен",
+  "tg": "Дархост фиристода шуд",
+  "tr": "İstek gönderildi",
+  "uz": "So'rov yuborildi",
+  "zh": "请求已发送"
+ },
+ "Request sent to {name}.": {
+  "ar": "تم إرسال الطلب إلى {name}.",
+  "hi": "{name} को अनुरोध भेजा गया।",
+  "ky": "{name} сурам жөнөтүлдү.",
+  "ru": "Запрос отправлен: {name}.",
+  "tg": "Ба {name} дархост фиристода шуд.",
+  "tr": "{name} kişisine istek gönderildi.",
+  "uz": "{name}ga so'rov yuborildi.",
+  "zh": "已向 {name} 发送请求。"
  },
  "Results, homework and Mock Day news arrive as notifications when you open the app": {
   "ar": "تصل النتائج والواجبات وأخبار يوم الاختبار كإشعارات عند فتح التطبيق",
@@ -1079,6 +1469,26 @@
   "uz": "Saqlagan so'zlaringizni har kuni bir nechtadan takrorlang",
   "zh": "每天复习几个你保存的单词"
  },
+ "Review your words: {n} due today": {
+  "ar": "راجع كلماتك: {n} اليوم",
+  "hi": "अपने शब्द दोहराएँ: आज {n}",
+  "ky": "Сөздөрүңүздү кайталаңыз: бүгүн {n}",
+  "ru": "Повторите слова: сегодня {n}",
+  "tg": "Калимаҳоро такрор кунед: имрӯз {n}",
+  "tr": "Kelimelerini tekrar et: bugün {n}",
+  "uz": "So'zlarni takrorlang: bugun {n} ta",
+  "zh": "复习单词：今天 {n} 个"
+ },
+ "Rewarded.": {
+  "ar": "تمت المكافأة.",
+  "hi": "इनाम दे दिया।",
+  "ky": "Сыйланды.",
+  "ru": "Награждены.",
+  "tg": "Мукофот дода шуд.",
+  "tr": "Ödüllendirildi.",
+  "uz": "Mukofotlandi.",
+  "zh": "已奖励。"
+ },
  "START HERE": {
   "ar": "ابدأ هنا",
   "hi": "यहाँ से शुरू करें",
@@ -1099,6 +1509,16 @@
   "uz": "Notiqdan keyin takrorlang",
   "zh": "跟着说话人说"
  },
+ "Scan with the phone camera": {
+  "ar": "امسح بكاميرا الهاتف",
+  "hi": "फ़ोन कैमरे से स्कैन करें",
+  "ky": "Телефондун камерасы менен сканерлеңиз",
+  "ru": "Отсканируйте камерой телефона",
+  "tg": "Бо камераи телефон скан кунед",
+  "tr": "Telefon kamerasıyla tarayın",
+  "uz": "Telefon kamerasi bilan skanerlang",
+  "zh": "用手机相机扫描"
+ },
  "Score {n}": {
   "ar": "النتيجة {n}",
   "hi": "स्कोर {n}",
@@ -1109,6 +1529,16 @@
   "uz": "Hisob {n}",
   "zh": "得分 {n}"
  },
+ "Search YouTube: a song, a film, a topic": {
+  "ar": "ابحث في يوتيوب: أغنية، فيلم، موضوع",
+  "hi": "YouTube पर खोजें: गाना, फ़िल्म, विषय",
+  "ky": "YouTube'дан издеңиз: ыр, тасма, тема",
+  "ru": "Поиск на YouTube: песня, фильм, тема",
+  "tg": "Ҷустуҷӯ дар YouTube: суруд, филм, мавзӯъ",
+  "tr": "YouTube'da ara: şarkı, film, konu",
+  "uz": "YouTube'dan qidiring: qo'shiq, film, mavzu",
+  "zh": "搜索 YouTube：歌曲、电影、话题"
+ },
  "Search tests, lessons, learners, help": {
   "ar": "ابحث في الاختبارات والدروس والمتعلمين والمساعدة",
   "hi": "टेस्ट, पाठ, सीखने वाले, मदद खोजें",
@@ -1118,6 +1548,26 @@
   "tr": "Test, ders, öğrenci ve yardım ara",
   "uz": "Testlar, darslar, o'quvchilar, yordam bo'yicha qidirish",
   "zh": "搜索测试、课程、学习者和帮助"
+ },
+ "Second chance used. Try once more ({n} left).": {
+  "ar": "استُخدمت الفرصة الثانية. حاول مرة أخرى (تبقّى {n}).",
+  "hi": "दूसरा मौका इस्तेमाल हुआ। एक बार और कोशिश करें ({n} बचे)।",
+  "ky": "Экинчи мүмкүнчүлүк колдонулду. Дагы аракет кылыңыз ({n} калды).",
+  "ru": "Второй шанс использован. Попробуйте ещё раз (осталось {n}).",
+  "tg": "Имконияти дуюм истифода шуд. Боз кӯшиш кунед ({n} монд).",
+  "tr": "İkinci şans kullanıldı. Bir kez daha dene ({n} kaldı).",
+  "uz": "Ikkinchi imkoniyat ishlatildi. Yana urinib ko'ring ({n} qoldi).",
+  "zh": "已使用第二次机会，再试一次（剩 {n} 次）。"
+ },
+ "Section {n} of {m}": {
+  "ar": "القسم {n} من {m}",
+  "hi": "सेक्शन {n} / {m}",
+  "ky": "{m} бөлүмдөн {n}-сү",
+  "ru": "Раздел {n} из {m}",
+  "tg": "Бахши {n} аз {m}",
+  "tr": "Bölüm {n}/{m}",
+  "uz": "{m} tadan {n}-bo'lim",
+  "zh": "第 {n} 部分，共 {m} 部分"
  },
  "See what Pro gives": {
   "ar": "اعرف ما يقدمه Pro",
@@ -1158,6 +1608,16 @@
   "tr": "Yedi kelime oyunu",
   "uz": "Yettita so'z o'yini",
   "zh": "七个单词游戏"
+ },
+ "Show more": {
+  "ar": "عرض المزيد",
+  "hi": "और दिखाएँ",
+  "ky": "Көбүрөөк көрсөтүү",
+  "ru": "Показать ещё",
+  "tg": "Бештар нишон диҳед",
+  "tr": "Daha fazla göster",
+  "uz": "Ko'proq ko'rsatish",
+  "zh": "显示更多"
  },
  "Show my activity on my profile": {
   "ar": "إظهار نشاطي في ملفي",
@@ -1259,6 +1719,16 @@
   "uz": "Sinfingizni boshlang",
   "zh": "创建你的班级"
  },
+ "Start {s}": {
+  "ar": "ابدأ {s}",
+  "hi": "{s} शुरू करें",
+  "ky": "{s} баштоо",
+  "ru": "Начать {s}",
+  "tg": "Оғози {s}",
+  "tr": "{s} başlat",
+  "uz": "{s}ni boshlash",
+  "zh": "开始{s}"
+ },
  "Stay": {
   "ar": "البقاء",
   "hi": "रुकें",
@@ -1298,6 +1768,16 @@
   "tr": "Testi zaten yapmış öğrenciler sonuçlarını korur.",
   "uz": "Testni topshirib bo'lgan o'quvchilarning natijalari saqlanadi.",
   "zh": "已完成测试的学生会保留成绩。"
+ },
+ "Synonyms": {
+  "ar": "المرادفات",
+  "hi": "पर्यायवाची",
+  "ky": "Синонимдер",
+  "ru": "Синонимы",
+  "tg": "Синонимҳо",
+  "tr": "Eş anlamlılar",
+  "uz": "Sinonimlar",
+  "zh": "同义词"
  },
  "TODAY": {
   "ar": "اليوم",
@@ -1389,6 +1869,16 @@
   "uz": "Hamma bilan imtihon kuni",
   "zh": "和大家一起的考试日"
  },
+ "Test microphone": {
+  "ar": "اختبر الميكروفون",
+  "hi": "माइक्रोफ़ोन टेस्ट करें",
+  "ky": "Микрофонду сыноо",
+  "ru": "Проверить микрофон",
+  "tg": "Санҷиши микрофон",
+  "tr": "Mikrofonu test et",
+  "uz": "Mikrofonni sinash",
+  "zh": "测试麦克风"
+ },
  "Thank you! The Mockfy team reads every message.": {
   "ar": "شكرًا! يقرأ فريق Mockfy كل رسالة.",
   "hi": "धन्यवाद! Mockfy टीम हर संदेश पढ़ती है।",
@@ -1408,6 +1898,26 @@
   "tr": "Süre kaldığınız yerden yeniden işlemeye başlar.",
   "uz": "Vaqt to'xtagan joyidan yana yuradi.",
   "zh": "计时会从你离开的地方继续。"
+ },
+ "The examiner asks each question aloud and your answers are recorded. Use a quiet room. Say a sentence after you press Test.": {
+  "ar": "يطرح الممتحن كل سؤال بصوت عالٍ وتُسجَّل إجاباتك. استخدم غرفة هادئة. قل جملة بعد الضغط على اختبار.",
+  "hi": "परीक्षक हर सवाल बोलकर पूछता है और आपके जवाब रिकॉर्ड होते हैं। शांत कमरे में रहें। टेस्ट दबाकर एक वाक्य बोलें।",
+  "ky": "Экзаменатор ар бир суроону үн чыгарып берет, жоопторуңуз жазылат. Тынч бөлмөдө болуңуз. Сыноону баскандан кийин бир сүйлөм айтыңыз.",
+  "ru": "Экзаменатор задаёт каждый вопрос вслух, ваши ответы записываются. Найдите тихое место. Нажмите «Проверить» и скажите фразу.",
+  "tg": "Имтиҳонгир ҳар саволро баланд мепурсад ва ҷавобҳоятон сабт мешаванд. Дар ҳуҷраи ором бошед. Пас аз пахши Санҷиш як ҷумла гӯед.",
+  "tr": "Sınav görevlisi her soruyu sesli sorar ve cevaplarınız kaydedilir. Sessiz bir oda kullanın. Teste bastıktan sonra bir cümle söyleyin.",
+  "uz": "Examiner har savolni ovoz chiqarib so'raydi, javoblaringiz yoziladi. Tinch xonada bo'ling. Sinashni bosgach, bitta gap ayting.",
+  "zh": "考官会读出每个问题，你的回答会被录音。请在安静的地方。点击测试后说一句话。"
+ },
+ "The microphone works.": {
+  "ar": "الميكروفون يعمل.",
+  "hi": "माइक्रोफ़ोन काम कर रहा है।",
+  "ky": "Микрофон иштеп жатат.",
+  "ru": "Микрофон работает.",
+  "tg": "Микрофон кор мекунад.",
+  "tr": "Mikrofon çalışıyor.",
+  "uz": "Mikrofon ishlayapti.",
+  "zh": "麦克风正常。"
  },
  "The pilot has ended.": {
   "ar": "انتهت التجربة.",
@@ -1429,6 +1939,36 @@
   "uz": "Yozuv va taymer to'xtadi. Davom etganingizda savollar qaytadi.",
   "zh": "录音和计时已暂停，继续后题目会重新显示。"
  },
+ "The recording has finished. You have {n} minutes to check your answers.": {
+  "ar": "انتهى التسجيل. لديك {n} دقائق لمراجعة إجاباتك.",
+  "hi": "रिकॉर्डिंग ख़त्म हुई। जवाब जाँचने के लिए आपके पास {n} मिनट हैं।",
+  "ky": "Жазуу бүттү. Жоопторду текшерүүгө {n} мүнөтүңүз бар.",
+  "ru": "Запись закончилась. У вас {n} мин., чтобы проверить ответы.",
+  "tg": "Сабт тамом шуд. Барои санҷидани ҷавобҳо {n} дақиқа доред.",
+  "tr": "Kayıt bitti. Cevaplarınızı kontrol etmek için {n} dakikanız var.",
+  "uz": "Yozuv tugadi. Javoblarni tekshirish uchun {n} daqiqangiz bor.",
+  "zh": "录音结束了。你有 {n} 分钟检查答案。"
+ },
+ "The timer starts when you press Start and runs on our server, so closing the app does not reset it.": {
+  "ar": "يبدأ المؤقت عند الضغط على ابدأ ويعمل على خادمنا، لذا لا يعيد إغلاق التطبيق ضبطه.",
+  "hi": "स्टार्ट दबाने पर टाइमर शुरू होता है और हमारे सर्वर पर चलता है, इसलिए ऐप बंद करने से रीसेट नहीं होता।",
+  "ky": "Таймер Баштоону басканда башталат жана биздин серверде жүрөт, колдонмону жапсаңыз да кайра башталбайт.",
+  "ru": "Таймер запускается по нажатию «Начать» и идёт на нашем сервере, поэтому закрытие приложения его не сбрасывает.",
+  "tg": "Вақтсанҷ бо пахши Оғоз сар мешавад ва дар сервери мо кор мекунад, пӯшидани барнома онро аз нав намекунад.",
+  "tr": "Zamanlayıcı Başlat'a bastığınızda başlar ve sunucumuzda çalışır; uygulamayı kapatmak onu sıfırlamaz.",
+  "uz": "Taymer Boshlashni bosganingizda ishga tushadi va serverimizda yuradi, ilovani yopish uni qaytadan boshlamaydi.",
+  "zh": "点击开始后计时开始，在我们的服务器上运行，关闭应用也不会重置。"
+ },
+ "The top three of this week are rewarded.": {
+  "ar": "تمت مكافأة الثلاثة الأوائل هذا الأسبوع.",
+  "hi": "इस हफ़्ते के टॉप तीन को इनाम मिल चुका है।",
+  "ky": "Ушул жуманын мыкты үчөө сыйланды.",
+  "ru": "Тройка лидеров этой недели награждена.",
+  "tg": "Се нафари беҳтарини ин ҳафта мукофот гирифтанд.",
+  "tr": "Bu haftanın ilk üçü ödüllendirildi.",
+  "uz": "Bu haftaning top uchtaligi mukofotlangan.",
+  "zh": "本周前三名已获奖励。"
+ },
  "Their own results stay theirs. You can add them again later.": {
   "ar": "تبقى نتائجهم لهم. يمكنك إضافتهم مجددًا لاحقًا.",
   "hi": "उनके नतीजे उन्हीं के रहेंगे। आप बाद में फिर जोड़ सकते हैं।",
@@ -1449,6 +1989,16 @@
   "uz": "Mavzu",
   "zh": "主题"
  },
+ "They get crystals from Mockfy and a notification. Once per group and week.": {
+  "ar": "يحصلون على بلورات من Mockfy وإشعار. مرة لكل مجموعة أسبوعيًا.",
+  "hi": "उन्हें Mockfy से क्रिस्टल और सूचना मिलेगी। हर ग्रुप में हफ़्ते में एक बार।",
+  "ky": "Алар Mockfy'дан кристалл жана билдирме алышат. Ар бир топко жумасына бир жолу.",
+  "ru": "Они получат кристаллы от Mockfy и уведомление. Раз в неделю на группу.",
+  "tg": "Онҳо аз Mockfy кристалл ва огоҳинома мегиранд. Барои ҳар гурӯҳ ҳафтае як бор.",
+  "tr": "Mockfy'dan kristal ve bildirim alırlar. Her grup için haftada bir.",
+  "uz": "Ular Mockfy'dan kristall va bildirishnoma oladi. Har guruh uchun haftada bir marta.",
+  "zh": "他们会获得 Mockfy 的水晶和通知。每组每周一次。"
+ },
  "This week and all time": {
   "ar": "هذا الأسبوع وكل الأوقات",
   "hi": "इस हफ़्ते और अब तक",
@@ -1458,6 +2008,16 @@
   "tr": "Bu hafta ve tüm zamanlar",
   "uz": "Bu hafta va umumiy",
   "zh": "本周和总榜"
+ },
+ "Today's stage is done. Keep going!": {
+  "ar": "أنجزت مرحلة اليوم. واصل!",
+  "hi": "आज का स्टेज पूरा। चलते रहें!",
+  "ky": "Бүгүнкү баскыч бүттү. Уланта бериңиз!",
+  "ru": "Этап на сегодня пройден. Так держать!",
+  "tg": "Марҳилаи имрӯза иҷро шуд. Идома диҳед!",
+  "tr": "Bugünün aşaması tamam. Devam et!",
+  "uz": "Bugungi bosqich bajarildi. Davom eting!",
+  "zh": "今天的关卡完成了，继续加油！"
  },
  "Transcript": {
   "ar": "النص",
@@ -1509,6 +2069,16 @@
   "uz": "Maslahatdan foydalanasizmi?",
   "zh": "使用提示吗？"
  },
+ "Use headphones. The recording is heard once only and starts by itself, part by part, with time to read the questions before each part.": {
+  "ar": "استخدم سماعات. يُسمع التسجيل مرة واحدة ويبدأ تلقائيًا جزءًا جزءًا، مع وقت لقراءة الأسئلة قبل كل جزء.",
+  "hi": "हेडफ़ोन लगाएँ। रिकॉर्डिंग सिर्फ़ एक बार सुनाई देती है और ख़ुद शुरू होती है, हर भाग से पहले सवाल पढ़ने का समय मिलता है।",
+  "ky": "Кулакчын тагыңыз. Жазуу бир гана жолу угулат жана өзү башталат, бөлүк-бөлүк, ар бөлүктүн алдында суроолорду окууга убакыт берилет.",
+  "ru": "Используйте наушники. Запись звучит один раз и включается сама, по частям, с временем на чтение вопросов перед каждой частью.",
+  "tg": "Гӯшмонак истифода баред. Сабт танҳо як бор шунида мешавад ва худаш оғоз мешавад, қисм ба қисм, бо вақт барои хондани саволҳо.",
+  "tr": "Kulaklık kullanın. Kayıt yalnızca bir kez duyulur ve kendiliğinden başlar, bölüm bölüm; her bölümden önce soruları okuma süresi vardır.",
+  "uz": "Quloqchin taqing. Yozuv faqat bir marta eshitiladi va o'zi boshlanadi, qism-qism, har qism oldidan savollarni o'qish uchun vaqt beriladi.",
+  "zh": "请戴耳机。录音只播放一次并自动开始，逐部分播放，每部分前有时间阅读题目。"
+ },
  "Vibration": {
   "ar": "الاهتزاز",
   "hi": "वाइब्रेशन",
@@ -1518,6 +2088,16 @@
   "tr": "Titreşim",
   "uz": "Tebranish",
   "zh": "振动"
+ },
+ "We heard: \"{t}\"": {
+  "ar": "سمعنا: \"{t}\"",
+  "hi": "हमने सुना: \"{t}\"",
+  "ky": "Биз уктук: \"{t}\"",
+  "ru": "Мы услышали: «{t}»",
+  "tg": "Мо шунидем: \"{t}\"",
+  "tr": "Duyduğumuz: \"{t}\"",
+  "uz": "Eshitdik: \"{t}\"",
+  "zh": "我们听到：「{t}」"
  },
  "What to practise, from the questions you miss": {
   "ar": "ما تتدرب عليه، من الأسئلة التي أخطأت فيها",
@@ -1538,6 +2118,16 @@
   "tr": "Sırada ne çalışmalı",
   "uz": "Keyin nima ustida ishlash",
   "zh": "接下来练什么"
+ },
+ "When time runs out, your answers are submitted automatically. You cannot return to a submitted section.": {
+  "ar": "عند انتهاء الوقت تُرسل إجاباتك تلقائيًا. لا يمكنك العودة إلى قسم أُرسل.",
+  "hi": "समय ख़त्म होने पर जवाब अपने-आप जमा हो जाते हैं। जमा किए सेक्शन पर वापस नहीं जा सकते।",
+  "ky": "Убакыт бүткөндө жоопторуңуз автоматтык түрдө жөнөтүлөт. Тапшырылган бөлүмгө кайта албайсыз.",
+  "ru": "Когда время закончится, ответы отправятся автоматически. К сданному разделу вернуться нельзя.",
+  "tg": "Вақте ки вақт тамом шавад, ҷавобҳо худкор фиристода мешаванд. Ба бахши супоридашуда баргашта наметавонед.",
+  "tr": "Süre dolunca cevaplarınız otomatik gönderilir. Gönderilen bölüme dönemezsiniz.",
+  "uz": "Vaqt tugaganda javoblaringiz avtomatik yuboriladi. Topshirilgan bo'limga qaytib bo'lmaydi.",
+  "zh": "时间到时答案会自动提交，已提交的部分无法返回。"
  },
  "Where are you now?": {
   "ar": "أين أنت الآن؟",
@@ -1599,6 +2189,16 @@
   "uz": "Javobingizni shu yerga yozing",
   "zh": "在这里写下你的答案"
  },
+ "You are at band {n}: goal reached!": {
+  "ar": "أنت عند الدرجة {n}: تحقق الهدف!",
+  "hi": "आप बैंड {n} पर हैं: लक्ष्य पूरा!",
+  "ky": "Сиз {n} баллдасыз: максатка жеттиңиз!",
+  "ru": "У вас балл {n}: цель достигнута!",
+  "tg": "Шумо дар бали {n} ҳастед: мақсад иҷро шуд!",
+  "tr": "Bant {n} seviyesindesiniz: hedefe ulaşıldı!",
+  "uz": "Siz {n} balldasiz: maqsadga erishildi!",
+  "zh": "你已达到 {n} 分：目标完成！"
+ },
  "You are in. We will remind you when it starts.": {
   "ar": "أنت مسجَّل. سنذكّرك عندما يبدأ.",
   "hi": "आप शामिल हैं। शुरू होने पर हम याद दिलाएँगे।",
@@ -1608,6 +2208,16 @@
   "tr": "Kaydoldunuz. Başladığında size hatırlatacağız.",
   "uz": "Siz ro'yxatdasiz. Boshlanganda eslatamiz.",
   "zh": "你已报名，开始时我们会提醒你。"
+ },
+ "You beat {name}!": {
+  "ar": "لقد هزمت {name}!",
+  "hi": "आपने {name} को हराया!",
+  "ky": "{name} жеңдиңиз!",
+  "ru": "Вы победили {name}!",
+  "tg": "Шумо {name}-ро бурдед!",
+  "tr": "{name}'ı yendiniz!",
+  "uz": "{name}ni yutdingiz!",
+  "zh": "你赢了 {name}！"
  },
  "You cannot come back to this section after you finish it.": {
   "ar": "لا يمكنك العودة إلى هذا القسم بعد إنهائه.",
@@ -1619,6 +2229,26 @@
   "uz": "Bu bo'limni tugatgach, unga qayta olmaysiz.",
   "zh": "完成本部分后将无法返回。"
  },
+ "You got {x}.": {
+  "ar": "حصلت على {x}.",
+  "hi": "आपको {x} मिला।",
+  "ky": "Сиз {x} алдыңыз.",
+  "ru": "Вы получили {x}.",
+  "tg": "Шумо {x} гирифтед.",
+  "tr": "{x} kazandınız.",
+  "uz": "Sizga {x} tushdi.",
+  "zh": "你获得了 {x}。"
+ },
+ "You have {n} saved words. Tap a word in Reading to save it.": {
+  "ar": "لديك {n} كلمات محفوظة. حدد كلمة في القراءة لحفظها.",
+  "hi": "आपके पास {n} सहेजे शब्द हैं। Reading में शब्द चुनकर सहेजें।",
+  "ky": "Сизде {n} сакталган сөз бар. Reading'де сөздү белгилеп сактаңыз.",
+  "ru": "У вас {n} сохранённых слов. Выделите слово в Reading, чтобы сохранить.",
+  "tg": "Шумо {n} калимаи захирашуда доред. Дар Reading калимаро интихоб карда захира кунед.",
+  "tr": "{n} kayıtlı kelimeniz var. Kaydetmek için Reading'de bir kelime seçin.",
+  "uz": "Sizda {n} ta saqlangan so'z bor. Reading'da so'zni belgilab saqlang.",
+  "zh": "你有 {n} 个保存的单词。在阅读中选中单词即可保存。"
+ },
  "Your answers are saved. The clock keeps running while you are away.": {
   "ar": "إجاباتك محفوظة. يستمر المؤقت أثناء غيابك.",
   "hi": "आपके जवाब सहेजे गए हैं। आपकी गैरमौजूदगी में घड़ी चलती रहेगी।",
@@ -1628,6 +2258,16 @@
   "tr": "Cevaplarınız kaydedildi. Siz yokken süre işlemeye devam eder.",
   "uz": "Javoblaringiz saqlangan. Siz yo'qligingizda vaqt yuraveradi.",
   "zh": "你的答案已保存。离开期间计时仍会继续。"
+ },
+ "Your band: {n}": {
+  "ar": "درجتك: {n}",
+  "hi": "आपका बैंड: {n}",
+  "ky": "Баллыңыз: {n}",
+  "ru": "Ваш балл: {n}",
+  "tg": "Бали шумо: {n}",
+  "tr": "Bandınız: {n}",
+  "uz": "Ballingiz: {n}",
+  "zh": "你的分数：{n}"
  },
  "Your goal": {
   "ar": "هدفك",
@@ -1659,6 +2299,16 @@
   "uz": "Navbat sizda: ayting ({n} s)",
   "zh": "轮到你：说出来（{n} 秒）"
  },
+ "at least {n}": {
+  "ar": "{n} على الأقل",
+  "hi": "कम से कम {n}",
+  "ky": "кеминде {n}",
+  "ru": "минимум {n}",
+  "tg": "на камтар аз {n}",
+  "tr": "en az {n}",
+  "uz": "kamida {n}",
+  "zh": "至少 {n}"
+ },
  "e.g. Bright English Centre": {
   "ar": "مثل Bright English Centre",
   "hi": "जैसे Bright English Centre",
@@ -1669,6 +2319,36 @@
   "uz": "masalan, Bright English Centre",
   "zh": "例如 Bright English Centre"
  },
+ "not found": {
+  "ar": "غير موجود",
+  "hi": "नहीं मिले",
+  "ky": "табылган жок",
+  "ru": "не найдены",
+  "tg": "ёфт нашуд",
+  "tr": "bulunamadı",
+  "uz": "topilmadi",
+  "zh": "未找到"
+ },
+ "started {d}": {
+  "ar": "بدأ {d}",
+  "hi": "शुरू {d}",
+  "ky": "башталган {d}",
+  "ru": "начат {d}",
+  "tg": "оғоз {d}",
+  "tr": "başlangıç {d}",
+  "uz": "boshlangan: {d}",
+  "zh": "开始于 {d}"
+ },
+ "target {n}": {
+  "ar": "الهدف {n}",
+  "hi": "लक्ष्य {n}",
+  "ky": "максат {n}",
+  "ru": "цель {n}",
+  "tg": "мақсад {n}",
+  "tr": "hedef {n}",
+  "uz": "maqsad {n}",
+  "zh": "目标 {n}"
+ },
  "{d} active days · {t} tests · {h} homework done": {
   "ar": "{d} أيام نشطة · {t} اختبارات · {h} واجبات منجزة",
   "hi": "{d} सक्रिय दिन · {t} टेस्ट · {h} होमवर्क पूरे",
@@ -1678,6 +2358,26 @@
   "tr": "{d} aktif gün · {t} test · {h} ödev tamam",
   "uz": "{d} faol kun · {t} test · {h} uy vazifasi bajarildi",
   "zh": "活跃 {d} 天 · {t} 次测试 · 完成 {h} 份作业"
+ },
+ "{d} of {n} games": {
+  "ar": "{d} من {n} ألعاب",
+  "hi": "{n} में से {d} खेल",
+  "ky": "{n} оюндан {d}",
+  "ru": "{d} из {n} игр",
+  "tg": "{d} аз {n} бозӣ",
+  "tr": "{n} oyundan {d}",
+  "uz": "{n} tadan {d} o'yin",
+  "zh": "{d}/{n} 个游戏"
+ },
+ "{name} won this time": {
+  "ar": "فاز {name} هذه المرة",
+  "hi": "इस बार {name} जीता",
+  "ky": "Бул жолу {name} жеңди",
+  "ru": "На этот раз победил {name}",
+  "tg": "Ин дафъа {name} бурд",
+  "tr": "Bu sefer {name} kazandı",
+  "uz": "Bu safar {name} yutdi",
+  "zh": "这次 {name} 赢了"
  },
  "{n} days": {
   "ar": "{n} أيام",
@@ -1698,5 +2398,35 @@
   "tr": "Pilotun bitmesine {n} gün kaldı.",
   "uz": "Sinovdan {n} kun qoldi.",
   "zh": "试用还剩 {n} 天。"
+ },
+ "{n} requests sent": {
+  "ar": "تم إرسال {n} طلبات",
+  "hi": "{n} अनुरोध भेजे गए",
+  "ky": "{n} сурам жөнөтүлдү",
+  "ru": "Отправлено запросов: {n}",
+  "tg": "{n} дархост фиристода шуд",
+  "tr": "{n} istek gönderildi",
+  "uz": "{n} ta so'rov yuborildi",
+  "zh": "已发送 {n} 个请求"
+ },
+ "{n} words to review today": {
+  "ar": "{n} كلمات للمراجعة اليوم",
+  "hi": "आज {n} शब्द दोहराने हैं",
+  "ky": "Бүгүн {n} сөз кайталанат",
+  "ru": "Сегодня повторить {n} слов",
+  "tg": "Имрӯз {n} калима барои такрор",
+  "tr": "Bugün tekrar edilecek {n} kelime",
+  "uz": "Bugun {n} ta so'z takrorlanadi",
+  "zh": "今天要复习 {n} 个单词"
+ },
+ "{who} has Mockfy Pro. Here is what Pro gives:": {
+  "ar": "لدى {who} اشتراك Mockfy Pro. إليك ما يقدمه Pro:",
+  "hi": "{who} के पास Mockfy Pro है। Pro यह देता है:",
+  "ky": "{who} Mockfy Pro колдонот. Pro эмне берет:",
+  "ru": "У {who} есть Mockfy Pro. Вот что даёт Pro:",
+  "tg": "{who} Mockfy Pro дорад. Pro чӣ медиҳад:",
+  "tr": "{who} Mockfy Pro kullanıyor. Pro'nun sundukları:",
+  "uz": "{who}da Mockfy Pro bor. Pro nima beradi:",
+  "zh": "{who} 拥有 Mockfy Pro。Pro 提供："
  }
 }

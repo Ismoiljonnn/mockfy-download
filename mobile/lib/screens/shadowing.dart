@@ -13,35 +13,78 @@ import '../prefs.dart';
 import '../theme.dart';
 import '../widgets.dart';
 
-class ShadowingScreen extends StatelessWidget {
+class ShadowingScreen extends StatefulWidget {
   const ShadowingScreen({super.key});
+  @override
+  State<ShadowingScreen> createState() => _ShadowingScreenState();
+}
+
+class _ShadowingScreenState extends State<ShadowingScreen> {
+  Key _k = UniqueKey();
+  String _filter = 'all';
+  final _q = TextEditingController();
+  final List<Map> _found = [];
+  String _next = '';
+  bool _searching = false;
+  String? _searchError;
+  Set<String> _savedIds = {};
+
+  @override
+  void dispose() {
+    _q.dispose();
+    super.dispose();
+  }
+
+  // YouTube, through the website: a filter (TED, BBC, songs and more) or your own words
+  Future<void> _search({bool more = false}) async {
+    if (_searching) return;
+    setState(() { _searching = true; _searchError = null; if (!more) { _found.clear(); _next = ''; } });
+    try {
+      final r = await Api.I.get('/api/shadowing/feed', {'f': _filter, 'q': _q.text.trim(), if (more && _next.isNotEmpty) 'page': _next});
+      setState(() { _found.addAll(((r['items'] as List?) ?? []).cast<Map>()); _next = '${r['next'] ?? ''}'; });
+    } on ApiError catch (e) {
+      setState(() => _searchError = e.message);
+    }
+    if (mounted) setState(() => _searching = false);
+  }
+
+  Future<void> _watch(String yid, String title, List? segments, bool auto) async {
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => ShadowWatch(yid: yid, title: title, segments: segments, auto: auto, saved: _savedIds.contains(yid))));
+    if (mounted) setState(() => _k = UniqueKey());
+  }
+
   @override
   Widget build(BuildContext context) {
     final hint = Theme.of(context).hintColor;
     return Scaffold(
       appBar: AppBar(title: Text(tr('Shadowing'))),
       body: Loader<Map<String, dynamic>>(
+        key: _k,
         load: () => Api.I.get('/api/app/shadowing'),
         build: (context, d, reload) {
           final vids = ((d['videos'] as List?) ?? []).cast<Map>();
           final saved = ((d['saved'] as List?) ?? []).cast<Map>();
           final auto = d['auto'] == true;
+          final feed = d['feed'] == true;
+          final filters = ((d['filters'] as List?) ?? []).cast<Map>();
+          _savedIds = saved.map((v) => '${v['youtube_id']}').toSet();
           Widget card(String yid, String title, String sub, List? segments) => Card(
                 margin: const EdgeInsets.only(bottom: 10),
                 clipBehavior: Clip.antiAlias,
                 child: InkWell(
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ShadowWatch(yid: yid, title: title, segments: segments, auto: auto))),
+                  onTap: () => _watch(yid, title, segments, auto),
                   child: Row(children: [
                     Image.network('https://i.ytimg.com/vi/$yid/mqdefault.jpg', width: 128, height: 72, fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const SizedBox(width: 128, height: 72)),
+                        errorBuilder: (c, e, st) => const SizedBox(width: 128, height: 72)),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
                         const SizedBox(height: 2),
-                        Text(sub, style: TextStyle(fontSize: 12, color: hint)),
+                        Text(sub, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: hint)),
                       ]),
                     ),
+                    if (_savedIds.contains(yid)) const Padding(padding: EdgeInsets.only(right: 8), child: Icon(Icons.bookmark_rounded, color: C.gold, size: 20)),
                     const SizedBox(width: 8),
                   ]),
                 ),
@@ -49,8 +92,47 @@ class ShadowingScreen extends StatelessWidget {
           return ListView(padding: const EdgeInsets.all(16), children: [
             Text(tr('Listen to one sentence, then say it the same way. It builds fluency and pronunciation for IELTS Speaking.'),
                 style: TextStyle(color: hint)),
+            if (feed) ...[
+              const SizedBox(height: 12),
+              TextField(
+                controller: _q,
+                textInputAction: TextInputAction.search,
+                onSubmitted: (_) => _search(),
+                decoration: InputDecoration(
+                  hintText: tr('Search YouTube: a song, a film, a topic'),
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  isDense: true,
+                  suffixIcon: IconButton(icon: const Icon(Icons.arrow_forward_rounded), onPressed: _search),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 40,
+                child: ListView(scrollDirection: Axis.horizontal, children: [
+                  for (final f in filters)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: ChoiceChip(
+                        label: Text(tr('${f['label']}')),
+                        selected: _filter == f['id'] && _found.isNotEmpty,
+                        onSelected: (_) { setState(() => _filter = '${f['id']}'); _search(); },
+                      ),
+                    ),
+                ]),
+              ),
+              if (_searchError != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_searchError!, style: const TextStyle(color: C.red))),
+              if (_found.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                for (final v in _found) card('${v['id']}', '${v['title']}', '${v['channel'] ?? ''}', null),
+                if (_next.isNotEmpty)
+                  OutlinedButton(onPressed: _searching ? null : () => _search(more: true), child: Text(tr('Show more'))),
+              ],
+              if (_searching) const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator())),
+            ],
             const SizedBox(height: 14),
-            if (vids.isEmpty && saved.isEmpty) Center(child: Padding(padding: const EdgeInsets.all(30), child: Text(tr('No videos yet.')))),
+            if (vids.isNotEmpty)
+              Padding(padding: const EdgeInsets.fromLTRB(4, 0, 4, 8), child: Text(tr('Picked for you'), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800))),
+            if (vids.isEmpty && saved.isEmpty && !feed) Center(child: Padding(padding: const EdgeInsets.all(30), child: Text(tr('No videos yet.')))),
             for (final v in vids)
               card('${v['youtube_id']}', '${v['title']}', [if (v['level'] != null) '${v['level']}', tr('{n} sentences', {'n': v['count'] ?? 0})].join(' · '),
                   v['segments'] as List?),
@@ -83,7 +165,8 @@ function stop(){ clearInterval(tick); stopAt = null; if (player) player.pauseVid
 </script></body></html>''';
 
 class ShadowWatch extends StatefulWidget {
-  const ShadowWatch({super.key, required this.yid, required this.title, this.segments, this.auto = false});
+  const ShadowWatch({super.key, required this.yid, required this.title, this.segments, this.auto = false, this.saved = false});
+  final bool saved;
   final String yid;
   final String title;
   final List? segments;
@@ -102,6 +185,18 @@ class _ShadowWatchState extends State<ShadowWatch> {
   Timer? _turn;
   bool _ready = false;
   String _note = '';
+  late bool _saved = widget.saved;
+
+  Future<void> _toggleSave() async {
+    final on = !_saved;
+    setState(() => _saved = on);
+    try {
+      await Api.I.post('/api/shadowing/save', {'v': widget.yid, 'title': widget.title, 'on': on});
+      if (mounted) toast(context, on ? tr('Saved') : tr('Removed'));
+    } on ApiError catch (e) {
+      if (mounted) { setState(() => _saved = !on); toast(context, e.message); }
+    }
+  }
 
   @override
   void initState() {
@@ -203,6 +298,8 @@ class _ShadowWatchState extends State<ShadowWatch> {
     final seg = _segs.isEmpty ? null : _segs[_i];
     return Scaffold(
       appBar: AppBar(title: Text(widget.title, maxLines: 1, overflow: TextOverflow.ellipsis), actions: [
+        IconButton(tooltip: _saved ? tr('Saved') : tr('Save'), onPressed: _toggleSave,
+            icon: Icon(_saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded, color: _saved ? C.gold : null)),
         PopupMenuButton<double>(
           tooltip: tr('Speed'),
           icon: Text('${_rate}x', style: const TextStyle(fontWeight: FontWeight.w800)),

@@ -73,7 +73,7 @@ class _HomePlanState extends State<HomePlan> {
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               Text(tr('Your goal'), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
               const SizedBox(height: 12),
-              Text('Band ${band.toStringAsFixed(1)}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: C.accent)),
+              Text(tr('Band {n}', {'n': band.toStringAsFixed(1)}), textAlign: TextAlign.center, style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: C.accent)),
               Slider(value: band, min: 4, max: 9, divisions: 10, label: band.toStringAsFixed(1), onChanged: (v) => set(() => band = v)),
               const SizedBox(height: 8),
               Text(tr('Exam month'), style: TextStyle(fontWeight: FontWeight.w700)),
@@ -122,7 +122,7 @@ class _HomePlanState extends State<HomePlan> {
           'daily' => 'Daily English stage',
           'test' => '${_cap('${s['section']}')} practice test${(s['of'] as num) > 1 ? 's' : ''}',
           'games' => 'Two game rounds',
-          'words' => 'Review ${s['of']} words',
+          'words' => (s['left'] as num? ?? 0) > 0 ? tr('Review your words: {n} due today', {'n': s['left']}) : tr('Review your words'),
           _ => '${s['key']}',
         };
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -144,7 +144,7 @@ class _HomePlanState extends State<HomePlan> {
                     Row(children: [
                       const Icon(Icons.flag_rounded, color: C.accent),
                       const SizedBox(width: 8),
-                      Text('Goal: band ${goal['goal']}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                      Text(tr('Goal: band {n}', {'n': goal['goal']}), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                       const Spacer(),
                       if (goal['month'] != null) Text('${goal['month']}', style: TextStyle(color: hint)),
                     ]),
@@ -155,8 +155,8 @@ class _HomePlanState extends State<HomePlan> {
                       goal['now'] == null
                           ? 'Take a test to see where you are.'
                           : (goal['left'] as num? ?? 0) <= 0
-                              ? 'You are at band ${goal['now']}: goal reached!'
-                              : 'Now ${goal['now']} · ${goal['left']} to go${goal['weeks'] != null ? ' · ${goal['weeks']} weeks left' : ''}',
+                              ? tr('You are at band {n}: goal reached!', {'n': goal['now']})
+                              : tr('Now {n} · {l} to go', {'n': goal['now'], 'l': goal['left']}) + (goal['weeks'] != null ? ' · ${tr('{n} weeks left', {'n': goal['weeks']})}' : ''),
                       style: TextStyle(color: hint),
                     ),
                   ]),
@@ -184,7 +184,7 @@ class _HomePlanState extends State<HomePlan> {
                       color: s['done'] == true ? C.green : hint),
                   title: Text(label(s), style: TextStyle(
                       fontWeight: FontWeight.w600, decoration: s['done'] == true ? TextDecoration.lineThrough : null)),
-                  trailing: s['key'] == 'words' ? null : Text('${s['n']}/${s['of']}', style: TextStyle(color: hint)),
+                  trailing: Text('${s['n']}/${s['of']}', style: TextStyle(color: hint)),
                 ),
             ]),
           ),

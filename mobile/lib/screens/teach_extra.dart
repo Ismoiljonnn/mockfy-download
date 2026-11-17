@@ -302,3 +302,166 @@ class _TeachCentreScreenState extends State<TeachCentreScreen> {
     );
   }
 }
+
+/// The class leaderboard: this week's (or last week's) points of the students, and crystals for the top three.
+class TeachLeagueScreen extends StatefulWidget {
+  const TeachLeagueScreen({super.key});
+  @override
+  State<TeachLeagueScreen> createState() => _TeachLeagueScreenState();
+}
+
+class _TeachLeagueScreenState extends State<TeachLeagueScreen> {
+  String _group = '';
+  bool _last = false;
+  Key _k = UniqueKey();
+
+  Future<void> _award(String week) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text(tr('Reward the top three?')),
+        content: Text(tr('They get crystals from Mockfy and a notification. Once per group and week.')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancel'))),
+          TextButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Reward'))),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await Api.I.post('/api/teach/award', {'group_id': _group.isEmpty ? null : _group, 'week': week});
+      if (mounted) { toast(context, tr('Rewarded.')); setState(() => _k = UniqueKey()); }
+    } on ApiError catch (e) {
+      if (mounted) toast(context, e.message);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hint = Theme.of(context).hintColor;
+    return Scaffold(
+      appBar: AppBar(title: Text(tr('Class leaderboard'))),
+      body: Loader<Map<String, dynamic>>(
+        key: _k,
+        load: () => Api.I.get('/api/app/teach/league', {'group': _group, if (_last) 'week': 'last'}),
+        build: (context, d, reload) {
+          final rows = ((d['rows'] as List?) ?? []).cast<Map>();
+          final groups = ((d['groups'] as List?) ?? []).cast<Map>();
+          final awards = ((d['awards'] as List?) ?? []);
+          return ListView(padding: const EdgeInsets.all(16), children: [
+            Wrap(spacing: 8, children: [
+              ChoiceChip(label: Text(tr('This week')), selected: !_last, onSelected: (_) => setState(() { _last = false; _k = UniqueKey(); })),
+              ChoiceChip(label: Text(tr('Last week')), selected: _last, onSelected: (_) => setState(() { _last = true; _k = UniqueKey(); })),
+            ]),
+            if (groups.isNotEmpty)
+              DropdownButton<String>(
+                value: _group,
+                isExpanded: true,
+                items: [
+                  DropdownMenuItem(value: '', child: Text(tr('All groups'))),
+                  for (final g in groups) DropdownMenuItem(value: '${g['id']}', child: Text('${g['name']}')),
+                ],
+                onChanged: (v) => setState(() { _group = v ?? ''; _k = UniqueKey(); }),
+              ),
+            const SizedBox(height: 8),
+            if (rows.isEmpty) Padding(padding: const EdgeInsets.all(24), child: Center(child: Text(tr('No students here yet.')))),
+            for (var i = 0; i < rows.length; i++)
+              Card(
+                margin: const EdgeInsets.only(bottom: 6),
+                child: ListTile(
+                  leading: SizedBox(width: 30, child: Text('${i + 1}', textAlign: TextAlign.center,
+                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: i < 3 ? C.gold : hint))),
+                  title: Text('${rows[i]['name']}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: Text('${rows[i]['group'] ?? ''}'),
+                  trailing: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [
+                    Text('${rows[i]['points']}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                    if (i < awards.length && i < 3) Text('+${awards[i]} 💎', style: TextStyle(fontSize: 11, color: hint)),
+                  ]),
+                ),
+              ),
+            const SizedBox(height: 10),
+            if (rows.isNotEmpty)
+              d['awarded'] == true
+                  ? Center(child: Text(tr('The top three of this week are rewarded.'), style: TextStyle(color: hint)))
+                  : FilledButton.icon(onPressed: () => _award('${d['week']}'), icon: const Icon(Icons.emoji_events_rounded), label: Text(tr('Reward the top three'))),
+          ]);
+        },
+      ),
+    );
+  }
+}
+
+/// Many students at once: one @username or email per line, all into one group.
+Future<void> showBulkAdd(BuildContext context, List<Map> groups, VoidCallback done) async {
+  final text = TextEditingController();
+  String? gid = groups.isNotEmpty ? '${groups.first['id']}' : null;
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (c) => StatefulBuilder(
+      builder: (c, set) => AlertDialog(
+        title: Text(tr('Add many students')),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(
+            controller: text,
+            minLines: 5,
+            maxLines: 10,
+            decoration: InputDecoration(hintText: tr('One @username or email per line')),
+          ),
+          if (groups.isNotEmpty)
+            DropdownButtonFormField<String>(
+              value: gid,
+              decoration: InputDecoration(labelText: tr('Group')),
+              items: [for (final g in groups) DropdownMenuItem(value: '${g['id']}', child: Text('${g['name']}'))],
+              onChanged: (v) => set(() => gid = v),
+            ),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancel'))),
+          TextButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Send requests'))),
+        ],
+      ),
+    ),
+  );
+  if (ok != true || text.text.trim().isEmpty) return;
+  try {
+    final r = await Api.I.post('/api/teach/import', {'text': text.text, 'group_id': gid});
+    final sent = r['sent'] is List ? (r['sent'] as List).length : r['sent'];
+    final failed = r['failed'] is List ? (r['failed'] as List) : const [];
+    if (context.mounted) {
+      toast(context, tr('{n} requests sent', {'n': sent}) + (failed.isEmpty ? '' : ' · ${tr('not found')}: ${failed.map((f) => f is Map ? (f['query'] ?? f['line'] ?? f) : f).join(', ')}'));
+    }
+    done();
+  } on ApiError catch (e) {
+    if (context.mounted) toast(context, e.message);
+  }
+}
+
+/// The group's QR code big, for the classroom screen: students scan it and join.
+class JoinPosterScreen extends StatelessWidget {
+  const JoinPosterScreen({super.key, required this.groupId});
+  final int groupId;
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(backgroundColor: Colors.white, foregroundColor: Colors.black),
+        body: Loader<Map<String, dynamic>>(
+          load: () => Api.I.post('/api/teach/groups/$groupId/link'),
+          build: (context, r, reload) => Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(children: [
+                Text(tr('Join my class on Mockfy'), textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.black, fontSize: 28, fontWeight: FontWeight.w900)),
+                Text('${(r['group'] as Map?)?['name'] ?? ''}', style: const TextStyle(color: Colors.black54, fontSize: 18)),
+                const SizedBox(height: 20),
+                if ('${r['qr'] ?? ''}'.isNotEmpty) SvgPicture.string('${r['qr']}', width: 300, height: 300),
+                const SizedBox(height: 16),
+                SelectableText('${r['url']}', textAlign: TextAlign.center, style: const TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 8),
+                Text(tr('Scan with the phone camera'), style: const TextStyle(color: Colors.black54)),
+              ]),
+            ),
+          ),
+        ),
+      );
+}

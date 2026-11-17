@@ -16,7 +16,9 @@ import '../api.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import 'listening.dart';
+import 'exam_intro.dart';
 import 'results.dart';
+import 'wordcard.dart';
 import 'tests.dart';
 
 class ExamScreen extends StatefulWidget {
@@ -29,7 +31,8 @@ class ExamScreen extends StatefulWidget {
 /// What the questions and the passage need from the exam: flags, hints and highlights.
 class _ExamScope extends InheritedWidget {
   const _ExamScope({required this.flags, required this.onFlag, required this.hints, required this.onHint,
-      required this.highlights, required this.onHighlights, required this.hintShown, required super.child});
+      required this.highlights, required this.onHighlights, required this.hintShown, required this.attemptId, required super.child});
+  final int attemptId;
   final Set<String> flags;
   final void Function(String qid) onFlag;
   final Object? hints;                                  // null: no hints in this section; '∞' or a number
@@ -166,7 +169,7 @@ class _ExamScreenState extends State<ExamScreen> with WidgetsBindingObserver {
           context: context,
           builder: (c) => AlertDialog(
             title: Text(tr('Use a hint?')),
-            content: Text('A hint marks the paragraph that has the answer. You have $have left.'),
+            content: Text(tr('A hint marks the paragraph that has the answer. You have {n} left.', {'n': have})),
             actions: [
               TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancel'))),
               TextButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Use a hint'))),
@@ -211,7 +214,7 @@ class _ExamScreenState extends State<ExamScreen> with WidgetsBindingObserver {
           final left = (r['remainingSeconds'] as num?)?.toInt();
           if (left != null && mounted) setState(() => _left = left);
           final mins = ((section['review_seconds'] as num?) ?? 120) ~/ 60;
-          if (mounted) toast(context, 'The recording has finished. You have $mins minute${mins == 1 ? '' : 's'} to check your answers.');
+          if (mounted) toast(context, tr('The recording has finished. You have {n} minutes to check your answers.', {'n': mins}));
         } on ApiError { /* the clock still ends the section */ }
       },
       onError: (m) { if (mounted) toast(context, m); },
@@ -219,10 +222,26 @@ class _ExamScreenState extends State<ExamScreen> with WidgetsBindingObserver {
     _player = pl;
   }
 
+  Map<String, dynamic>? _intro;          // the section has not started: its intro page shows first
+
   Future<void> _startSection() async {
     setState(() { _busy = true; _error = null; });
     try {
+      final now = (await Api.I.get(_base))['state'] as Map<String, dynamic>;
+      if (now['status'] == 'in_progress' && now['sectionState'] == 'intro') {
+        setState(() { _intro = now; _st = now; _busy = false; });
+        return;
+      }
+      await _begin();
+    } on ApiError catch (e) {
+      setState(() { _error = e.message; _busy = false; });
+    }
+  }
+
+  Future<void> _begin() async {
+    try {
       final r = await Api.I.post('$_base/start');
+      _intro = null;
       _take(r['state'] as Map<String, dynamic>);
     } on ApiError catch (e) {
       setState(() { _error = e.message; _busy = false; });
@@ -286,7 +305,7 @@ class _ExamScreenState extends State<ExamScreen> with WidgetsBindingObserver {
       final ok = await showDialog<bool>(
         context: context,
         builder: (c) => AlertDialog(
-          title: Text('Finish ${(_st!['section'] as Map?)?['title'] ?? 'this section'}?'),
+          title: Text(tr('Finish {s}?', {'s': (_st!['section'] as Map?)?['title'] ?? ''})),
           content: Text(tr('You cannot come back to this section after you finish it.')),
           actions: [
             TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Keep going'))),
@@ -384,6 +403,9 @@ class _ExamScreenState extends State<ExamScreen> with WidgetsBindingObserver {
     }
     final st = _st!;
     if (st['status'] != 'in_progress') return ResultsScreen(attemptId: widget.attemptId);
+    if (_intro != null) {
+      return Scaffold(appBar: AppBar(title: Text('${(st['test'] as Map?)?['title'] ?? ''}')), body: SectionIntro(state: _intro!, onStart: _begin));
+    }
     final section = (st['section'] as Map).cast<String, dynamic>();
     final key = '${section['key']}';
     final parts = (section['parts'] as List).cast<Map>();
@@ -454,6 +476,7 @@ class _ExamScreenState extends State<ExamScreen> with WidgetsBindingObserver {
               highlights: _highlights,
               onHighlights: _saveHighlights,
               hintShown: _hintShown,
+              attemptId: widget.attemptId,
               child: Column(children: [
                 if (_player != null)
                   _AudioPanel(player: _player!, parts: parts, canPause: _canPause, paused: _softPaused, onPause: _togglePause),
@@ -622,6 +645,14 @@ class _Passage extends StatelessWidget {
     return out;
   }
 
+  /// The sentence of the paragraph that holds the character at [at].
+  static String _sentenceAt(String text, int at) {
+    var start = 0, end = text.length;
+    for (var i = at - 1; i >= 0; i--) { if ('.!?'.contains(text[i])) { start = i + 1; break; } }
+    for (var i = at; i < text.length; i++) { if ('.!?'.contains(text[i])) { end = i + 1; break; } }
+    return text.substring(start, end).trim();
+  }
+
   static List<List<int>> _cut(List<List<int>> spans, int a, int b) {
     final out = <List<int>>[];
     for (final r in spans) {
@@ -686,9 +717,16 @@ class _Passage extends StatelessWidget {
                                 scope.onHighlights(part, all);
                                 state.hideToolbar();
                               }
+                              final picked = oneWord(sel.textInside(text));
                               return AdaptiveTextSelectionToolbar.buttonItems(
                                 anchors: state.contextMenuAnchors,
                                 buttonItems: [
+                                  // one word picked: its meaning in this sentence, and save it to My words
+                                  if (picked != null)
+                                    ContextMenuButtonItem(label: tr('Meaning'), onPressed: () {
+                                      state.hideToolbar();
+                                      showWordCard(context, picked, sentence: _sentenceAt(text, a), attempt: scope.attemptId);
+                                    }),
                                   if (b > a)
                                     ContextMenuButtonItem(label: tr('Highlight'), onPressed: () => save(_merge([...mine, [a, b]]))),
                                   if (b > a && covered)
@@ -733,7 +771,7 @@ class _AudioPanel extends StatelessWidget {
           } else if (s.kind == 'intro' || s.kind == 'end') {
             text = '$title: the examiner is speaking';
           } else {
-            text = s.playing ? '$title: listening…' : '$title';
+            text = s.playing ? '$title: ${tr('Listening…')}' : '$title';
           }
           final value = s.finished ? 1.0 : s.kind == 'prep' ? null : (s.fraction ?? 0);
           return Material(
@@ -777,7 +815,7 @@ class _WritingBrief extends StatelessWidget {
             Text('${task['text'] ?? ''}', style: const TextStyle(fontSize: 16, height: 1.5)),
             if ((task['min_words'] as num? ?? 0) > 0)
               Padding(padding: const EdgeInsets.only(top: 10),
-                  child: Text('Write at least ${task['min_words']} words.', style: const TextStyle(fontWeight: FontWeight.w700))),
+                  child: Text(tr('Write at least {n} words.', {'n': task['min_words']}), style: const TextStyle(fontWeight: FontWeight.w700))),
             if (task['image'] is String) ...[const SizedBox(height: 12), _MediaImage(path: task['image'] as String)],
           ]),
         ),
@@ -825,7 +863,7 @@ class _WritingAnswerState extends State<_WritingAnswer> {
           ),
         ),
         const SizedBox(height: 6),
-        Text('$_words words${min > 0 ? ' · at least $min' : ''}', textAlign: TextAlign.right,
+        Text(tr('{n} words', {'n': _words}) + (min > 0 ? ' · ${tr('at least {n}', {'n': min})}' : ''), textAlign: TextAlign.right,
             style: TextStyle(color: _words >= min ? C.green : Theme.of(context).hintColor, fontWeight: FontWeight.w600)),
       ]),
     );
@@ -1115,7 +1153,7 @@ class _QuestionTools extends StatelessWidget {
       if (scope.hints != null)
         IconButton(
           visualDensity: VisualDensity.compact,
-          tooltip: 'Hint (${scope.hints} left)',
+          tooltip: tr('Hint ({n} left)', {'n': scope.hints}),
           icon: const Icon(Icons.lightbulb_outline_rounded, size: 20),
           onPressed: () => scope.onHint(qid),
         ),
@@ -1301,8 +1339,8 @@ class ReviewScreen extends StatelessWidget {
                         Expanded(child: Text('${q['text'] ?? ''}', maxLines: 2, overflow: TextOverflow.ellipsis)),
                       ]),
                       const SizedBox(height: 6),
-                      Text('Your answer: ${answers['${q['id']}'] ?? '—'}'),
-                      if (!ok) Text('Answer: ${m['answer'] is List ? (m['answer'] as List).join(' / ') : m['answer'] ?? ''}',
+                      Text('${tr('Your answer')}: ${answers['${q['id']}'] ?? '—'}'),
+                      if (!ok) Text('${tr('Answer')}: ${m['answer'] is List ? (m['answer'] as List).join(' / ') : m['answer'] ?? ''}',
                           style: const TextStyle(fontWeight: FontWeight.w700)),
                       if ('${m['explanation'] ?? ''}'.isNotEmpty)
                         Padding(padding: const EdgeInsets.only(top: 6),

@@ -72,7 +72,7 @@ class _StageScreenState extends State<StageScreen> {
     try {
       final r = await Api.I.post('/api/daily/${widget.stageId}/answer', {'question': _q['id'], 'answer': answer});
       if (r['secondChance'] == true) {
-        if (mounted) toast(context, 'Second chance used. Try once more (${r['left']} left).');
+        if (mounted) toast(context, tr('Second chance used. Try once more ({n} left).', {'n': r['left']}));
         setState(() { _picked = null; _typed.clear(); });
         return;
       }
@@ -226,7 +226,7 @@ class _StageScreenState extends State<StageScreen> {
         ]),
         if (!ok) ...[
           const SizedBox(height: 6),
-          Text('Answer: ${fb['answer']}', style: const TextStyle(fontWeight: FontWeight.w600)),
+          Text('${tr('Answer')}: ${fb['answer']}', style: const TextStyle(fontWeight: FontWeight.w600)),
         ],
         if ((fb['explain'] ?? '').toString().isNotEmpty) ...[
           const SizedBox(height: 4),

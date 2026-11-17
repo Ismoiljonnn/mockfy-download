@@ -9,6 +9,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../api.dart';
+import '../prefs.dart';
 
 class ListeningStatus {
   const ListeningStatus({required this.finished, this.playing = false, this.part = 0, this.kind = '', this.remaining, this.fraction});
@@ -144,6 +145,7 @@ class ListeningPlayer extends ChangeNotifier {
       final file = await Api.I.media('${s.rec!['src']}');
       if (my != _token) return;
       await _audio.setFilePath(file.path);
+      await _audio.setVolume(Prefs.I.volume.value);
       if (my != _token) return;
       await _audio.seek(Duration(milliseconds: (_pos * 1000).round()));
       _kindNow = 'audio';
@@ -164,6 +166,7 @@ class ListeningPlayer extends ChangeNotifier {
       try {
         await _tts.awaitSpeakCompletion(true);
         await _tts.setSpeechRate(.47);
+        await _tts.setVolume(Prefs.I.volume.value);
         _ttsReady = true;
       } catch (_) {}
     }

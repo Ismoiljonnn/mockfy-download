@@ -26,7 +26,7 @@ def keys():
                 for m in LIT.finditer(io.open(os.path.join(dp, f), encoding='utf-8').read()):
                     k = m.group(1) if m.group(1) is not None else m.group(2)
                     out.add(k.replace("\\'", "'").replace('\\"', '"').replace('\\n', '\n'))
-    return sorted(out)
+    return sorted(k for k in out if not k.startswith('$'))
 
 
 def main():

@@ -88,7 +88,7 @@ class _PlacementScreenState extends State<PlacementScreen> {
         const SizedBox(height: 12),
         Text(tr('Your level'), textAlign: TextAlign.center, style: TextStyle(fontSize: 18)),
         Text('${s['cefr'] ?? ''}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w900, color: C.accent)),
-        if (s['band'] != null) Text('About IELTS band ${s['band']}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+        if (s['band'] != null) Text(tr('About IELTS band {n}', {'n': s['band']}), textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
         Text('${s['right']} of ${s['total']} right. Daily English now starts at this level.', textAlign: TextAlign.center, style: TextStyle(color: hint)),
         const SizedBox(height: 24),
@@ -121,7 +121,7 @@ class _PlacementScreenState extends State<PlacementScreen> {
           child: ListView(padding: const EdgeInsets.all(20), children: [
             LinearProgressIndicator(value: (n - 1) / total, minHeight: 8, borderRadius: BorderRadius.circular(6), color: C.green),
             const SizedBox(height: 8),
-            Text('Question $n of $total', style: TextStyle(color: hint)),
+            Text(tr('Question {n} of {m}', {'n': n, 'm': total}), style: TextStyle(color: hint)),
             const SizedBox(height: 14),
             Text('${q['prompt']}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, height: 1.35)),
             const SizedBox(height: 20),

@@ -89,7 +89,7 @@ class HomeScreen extends StatelessWidget {
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Text(tr('Daily English'), style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
                           const SizedBox(height: 2),
-                          Text(daily['todayDone'] == true ? 'Today\'s stage is done. Keep going!' : next != null ? 'Next: ${next['title']}' : 'Open the map',
+                          Text(daily['todayDone'] == true ? tr("Today's stage is done. Keep going!") : next != null ? tr('Next: {x}', {'x': next['title']}) : tr('Open the map'),
                               style: TextStyle(color: Theme.of(context).hintColor)),
                           const SizedBox(height: 8),
                           LinearProgressIndicator(
@@ -164,7 +164,7 @@ class _StreakCard extends StatelessWidget {
             const SizedBox(width: 6),
             Text(count == 1 ? tr('day streak') : tr('day streak'), style: TextStyle(color: Theme.of(context).hintColor)),
             const Spacer(),
-            Text('Best ${streak['best'] ?? 0}', style: TextStyle(color: Theme.of(context).hintColor)),
+            Text(tr('Best {n}', {'n': streak['best'] ?? 0}), style: TextStyle(color: Theme.of(context).hintColor)),
           ]),
           const SizedBox(height: 14),
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [

@@ -13,12 +13,14 @@ class Prefs {
   final sound = ValueNotifier<bool>(true);
   final haptics = ValueNotifier<bool>(true);
   final workspaceChanged = ValueNotifier<int>(0);   // bumped after a workspace switch
+  final volume = ValueNotifier<double>(1);          // the Listening recording's volume
 
   Future<void> init() async {
     _p = await SharedPreferences.getInstance();
     theme.value = switch (_p.getString('theme')) { 'light' => ThemeMode.light, 'dark' => ThemeMode.dark, _ => ThemeMode.system };
     sound.value = _p.getBool('sound') ?? true;
     haptics.value = _p.getBool('haptics') ?? true;
+    volume.value = _p.getDouble('volume') ?? 1;
   }
 
   void setTheme(ThemeMode m) {
@@ -30,6 +32,7 @@ class Prefs {
 
   void setSound(bool on) { sound.value = on; _p.setBool('sound', on); }
   void setHaptics(bool on) { haptics.value = on; _p.setBool('haptics', on); }
+  void setVolume(double v) { volume.value = v; _p.setDouble('volume', v); }
 }
 
 /// Short sound effects, the same ones as on the website: tap, press, right, error, win, coin.

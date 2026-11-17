@@ -13,6 +13,7 @@ import '../api.dart';
 import '../prefs.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import 'wordcard.dart';
 
 const _games = [
   ('match', 'Word match', 'Pick the word for its meaning.', Icons.extension_rounded, C.accent),
@@ -72,7 +73,7 @@ class _GamesScreenState extends State<GamesScreen> {
                     Text('+${quest['reward'] ?? 30} 💎', style: const TextStyle(fontWeight: FontWeight.w800)),
                   ]),
                   const SizedBox(height: 6),
-                  Text('Play $of different games with ${quest['score'] ?? 10} or more points.', style: TextStyle(color: Theme.of(context).hintColor)),
+                  Text(tr('Play {n} different games with {s} or more points.', {'n': of, 's': quest['score'] ?? 10}), style: TextStyle(color: Theme.of(context).hintColor)),
                   const SizedBox(height: 10),
                   LinearProgressIndicator(value: of == 0 ? 0 : done / of, color: C.gold, minHeight: 8, borderRadius: BorderRadius.circular(5)),
                   const SizedBox(height: 10),
@@ -81,7 +82,7 @@ class _GamesScreenState extends State<GamesScreen> {
                   else if (ready)
                     FilledButton(onPressed: _claim, child: Text(tr('Claim the reward')))
                   else
-                    Text('$done of $of games', style: const TextStyle(fontWeight: FontWeight.w700)),
+                    Text(tr('{d} of {n} games', {'d': done, 'n': of}), style: const TextStyle(fontWeight: FontWeight.w700)),
                 ]),
               ),
             ),
@@ -120,8 +121,8 @@ class _GamesScreenState extends State<GamesScreen> {
                       ],
                     ]),
                     subtitle: Text(best[g.$1] is Map && ((best[g.$1] as Map)['best'] ?? 0) > 0
-                        ? 'Best ${(best[g.$1] as Map)['best']}${(best[g.$1] as Map)['rank'] != null ? ' · #${(best[g.$1] as Map)['rank']} this week' : ''}'
-                        : g.$3),
+                        ? tr('Best {n}', {'n': (best[g.$1] as Map)['best']}) + ((best[g.$1] as Map)['rank'] != null ? ' · ${tr('#{n} this week', {'n': (best[g.$1] as Map)['rank']})}' : '')
+                        : tr(g.$3)),
                     trailing: const Icon(Icons.play_circle_fill_rounded, color: C.accent, size: 30),
                     onTap: () async {
                       await Navigator.push(context, MaterialPageRoute(builder: (_) => _gameFor(g.$1, g.$2)));
@@ -495,7 +496,7 @@ class _WordGameState extends State<WordGame> {
           ? const Center(child: CircularProgressIndicator())
           : _over || _items.isEmpty
               ? _GameOver(score: widget.duel ? _score * 10 : _score, best: _best, again: _start,
-                  line: widget.duel ? (_score >= _goal ? 'You beat ${_opponent?['name'] ?? 'the bot'}!' : '${_opponent?['name'] ?? 'The bot'} won this time') : null)
+                  line: widget.duel ? (_score >= _goal ? tr('You beat {name}!', {'name': _opponent?['name'] ?? 'Bot'}) : tr('{name} won this time', {'name': _opponent?['name'] ?? 'Bot'})) : null)
               : _question(context),
     );
   }
@@ -507,9 +508,10 @@ class _WordGameState extends State<WordGame> {
       Row(children: [
         Hudi(mood: _mood, size: 56),
         const SizedBox(width: 12),
-        Expanded(child: Text(widget.duel ? 'You $_score · ${_opponent?['name'] ?? 'Bot'} $_bot' : 'Score $_score',
+        Expanded(child: Text(widget.duel ? '${tr('You')} $_score · ${_opponent?['name'] ?? 'Bot'} $_bot' : tr('Score {n}', {'n': _score}),
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800))),
         if (widget.seconds == null) Text('${_i + 1}/${min(_goal, _items.length)}', style: TextStyle(color: Theme.of(context).hintColor)),
+        if (_picked != null && widget.seconds == null) SaveWordButton(word: '${it['word']}'),
       ]),
       if (widget.duel) ...[
         const SizedBox(height: 10),
@@ -633,7 +635,8 @@ class _ScrambleGameState extends State<ScrambleGame> {
               : ListView(padding: const EdgeInsets.all(20), children: [
                   Row(children: [Hudi(mood: _mood, size: 56), const SizedBox(width: 12),
                     Text(tr('Score {n}', {'n': _score}), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)), const Spacer(),
-                    Text(tr('{n} words', {'n': _i}), style: TextStyle(color: Theme.of(context).hintColor))]),
+                    Text(tr('{n} words', {'n': _i}), style: TextStyle(color: Theme.of(context).hintColor)),
+                    SaveWordButton(word: '${_words[_i]['word']}')]),
                   const SizedBox(height: 22),
                   Text('${_words[_i]['definition']}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, height: 1.35)),
                   const SizedBox(height: 22),
@@ -926,7 +929,7 @@ class _LadderGameState extends State<LadderGame> {
             ]),
           ),
         const SizedBox(height: 16),
-        Text('A stronger word for "${words[_step]}":', style: TextStyle(color: Theme.of(context).hintColor)),
+        Text(tr('A stronger word for "{w}":', {'w': words[_step]}), style: TextStyle(color: Theme.of(context).hintColor)),
         const SizedBox(height: 10),
         for (final o in (st['options'] as List).cast<String>())
           _choice(context, o, right: _picked == null ? null : (o == '${st['answer']}' ? true : (o == _picked ? false : null)), onTap: () => _pick(o)),
@@ -1035,7 +1038,8 @@ class _SpellGameState extends State<SpellGame> {
               : ListView(padding: const EdgeInsets.all(20), children: [
                   Row(children: [Hudi(mood: _mood, size: 56), const SizedBox(width: 12),
                     Text(tr('Score {n}', {'n': _score}), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)), const Spacer(),
-                    Text(tr('{n} words', {'n': _i}), style: TextStyle(color: Theme.of(context).hintColor))]),
+                    Text(tr('{n} words', {'n': _i}), style: TextStyle(color: Theme.of(context).hintColor)),
+                    if (_right != null) SaveWordButton(word: '${_words[_i]['word']}')]),
                   const SizedBox(height: 28),
                   Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                     IconButton.filled(iconSize: 40, onPressed: _say, icon: const Icon(Icons.volume_up_rounded)),
@@ -1063,7 +1067,7 @@ class _SpellGameState extends State<SpellGame> {
                     ),
                   ),
                   if (_right == false)
-                    Padding(padding: const EdgeInsets.only(top: 10), child: Text('It is "${_words[_i]['word']}"',
+                    Padding(padding: const EdgeInsets.only(top: 10), child: Text(tr('It is "{w}"', {'w': _words[_i]['word']}),
                         textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w700))),
                   const SizedBox(height: 18),
                   FilledButton(onPressed: _check, child: Text(tr('Check'))),
@@ -1124,7 +1128,7 @@ class _WordsBoardScreenState extends State<WordsBoardScreen> {
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(due > 0 ? '$due words to review today' : 'Nothing to review today',
+                      Text(due > 0 ? tr('{n} words to review today', {'n': due}) : tr('Nothing to review today'),
                           style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
                       const SizedBox(height: 2),
                       Text('${d['total'] ?? 0} words saved', style: TextStyle(color: Theme.of(context).hintColor)),
@@ -1216,7 +1220,7 @@ class _WordsBoardScreenState extends State<WordsBoardScreen> {
                             Padding(padding: const EdgeInsets.only(top: 8),
                                 child: Text('${'${w['sentence'] ?? ''}'.isNotEmpty ? w['sentence'] : w['example']}', style: const TextStyle(fontStyle: FontStyle.italic))),
                           if ((w['synonyms'] as List? ?? []).isNotEmpty)
-                            Padding(padding: const EdgeInsets.only(top: 8), child: Text('Synonyms: ${(w['synonyms'] as List).join(', ')}')),
+                            Padding(padding: const EdgeInsets.only(top: 8), child: Text('${tr('Synonyms')}: ${(w['synonyms'] as List).join(', ')}')),
                           const SizedBox(height: 16),
                           TextButton.icon(
                             style: TextButton.styleFrom(foregroundColor: C.red),
@@ -1292,7 +1296,7 @@ class _WordsReviewScreenState extends State<WordsReviewScreen> {
                   const SizedBox(height: 16),
                   Text(_items.isEmpty ? tr('No words to review today.') : 'All done for today!', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 6),
-                  Text('You have ${_data?['total'] ?? 0} saved words. Tap a word in Reading to save it.',
+                  Text(tr('You have {n} saved words. Tap a word in Reading to save it.', {'n': _data?['total'] ?? 0}),
                       textAlign: TextAlign.center, style: TextStyle(color: Theme.of(context).hintColor)),
                 ])))
               : _card(context),

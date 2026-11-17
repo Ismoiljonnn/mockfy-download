@@ -73,7 +73,7 @@ class MockDayScreen extends StatelessWidget {
                   Text('${e['joined'] ?? 0} learners joined', style: TextStyle(color: Theme.of(context).hintColor)),
                   if (prizes.isNotEmpty) ...[
                     const SizedBox(height: 10),
-                    Text('Prizes: ${prizes.asMap().entries.map((p) => '#${p.key + 1} ${p.value} crystals').join(' · ')}'),
+                    Text('${tr('Prizes')}: ${prizes.asMap().entries.map((p) => '#${p.key + 1} ${p.value} 💎').join(' · ')}'),
                   ],
                   const SizedBox(height: 16),
                   if (state == 'upcoming' || state == 'open') ...[
@@ -90,7 +90,7 @@ class MockDayScreen extends StatelessWidget {
                       ]),
                   ],
                   if (mine != null && mine['band'] != null)
-                    Text('Your band: ${mine['band']}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: C.accent)),
+                    Text(tr('Your band: {n}', {'n': mine['band']}), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: C.accent)),
                 ]),
               ),
             ),

@@ -86,7 +86,7 @@ class _ItemCardState extends State<_ItemCard> {
       final ok = await showDialog<bool>(
         context: context,
         builder: (c) => AlertDialog(
-          title: Text('Buy ${it['name']}?'),
+          title: Text(tr('Buy {x}?', {'x': it['name']})),
           content: Text('${it['price']} crystals. ${it['about']}'),
           actions: [
             TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancel'))),

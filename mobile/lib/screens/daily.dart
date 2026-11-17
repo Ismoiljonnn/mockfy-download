@@ -54,7 +54,7 @@ class _DailyScreenState extends State<DailyScreen> {
         builder: (d) => AlertDialog(
           icon: const Text('🎁', style: TextStyle(fontSize: 48)),
           title: Text(tr('Chest opened!')),
-          content: Text(item != null ? 'You got ${item['name']}.' : '+${c['points'] ?? 0} points', textAlign: TextAlign.center),
+          content: Text(item != null ? tr('You got {x}.', {'x': item['name']}) : tr('+{n} points', {'n': c['points'] ?? 0}), textAlign: TextAlign.center),
           actions: [TextButton(onPressed: () => Navigator.pop(d), child: Text(tr('Great')))],
         ),
       );
@@ -78,7 +78,7 @@ class _DailyScreenState extends State<DailyScreen> {
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Text(c['status'] == 'opened' ? '📭' : c['status'] == 'ready' ? '🎁' : '🔒', style: const TextStyle(fontSize: 28)),
-              title: Text('After stage ${c['n']}'),
+              title: Text(tr('After stage {n}', {'n': c['n']})),
               subtitle: Text(c['status'] == 'opened'
                   ? (c['item'] != null ? 'Opened' : 'Opened')
                   : c['status'] == 'ready' ? 'Ready to open' : 'Locked'),

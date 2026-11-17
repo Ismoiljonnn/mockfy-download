@@ -226,7 +226,7 @@ class HistoryScreen extends StatelessWidget {
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
                     title: Text('${a['testTitle'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle: Text('${scope(a)} · started ${day(a)}'),
+                    subtitle: Text('${scope(a)} · ${tr('started {d}', {'d': day(a)})}'),
                     trailing: FilledButton(
                       style: FilledButton.styleFrom(minimumSize: const Size(0, 38)),
                       onPressed: () => _continue(context, a),
@@ -328,7 +328,7 @@ class FriendsScreen extends StatelessWidget {
                 ])),
               const SizedBox(height: 12),
             ],
-            Text('Friends (${friends.length})', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+            Text(tr('Friends ({n})', {'n': friends.length}), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
             if (friends.isEmpty) Padding(padding: EdgeInsets.all(24),
                 child: Text(tr('Find learners on the leaderboard or with search, open their profile and add them.'), textAlign: TextAlign.center)),

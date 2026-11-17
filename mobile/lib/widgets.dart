@@ -96,7 +96,7 @@ void showProSheet(BuildContext context, {required String who, required bool isMe
           const SizedBox(height: 8),
           Text('Mockfy Pro', style: Theme.of(ctx).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 6),
-          Text(isMe ? tr('You have Mockfy Pro. Here is what it gives you:') : '$who has Mockfy Pro. Here is what Pro gives:',
+          Text(isMe ? tr('You have Mockfy Pro. Here is what it gives you:') : tr('{who} has Mockfy Pro. Here is what Pro gives:', {'who': who}),
               textAlign: TextAlign.center, style: TextStyle(color: Theme.of(ctx).hintColor)),
           const SizedBox(height: 16),
           Container(

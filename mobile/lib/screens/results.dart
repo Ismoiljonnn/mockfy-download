@@ -10,6 +10,7 @@ import '../api.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import 'exam.dart' show ReviewScreen;
+import 'share_card.dart';
 import 'tests.dart';
 
 String _cap(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
@@ -43,6 +44,23 @@ class ResultsView extends StatelessWidget {
                     ]),
                   ),
                 ),
+              Builder(builder: (context) {
+                // the band to show off: overall, or the one section of a section test
+                final one = secs.length == 1 ? secs.first['band'] : null;
+                final shown = overall ?? one;
+                if (shown == null) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.ios_share_rounded),
+                    label: Text(tr('Share result')),
+                    onPressed: () => shareResult(context,
+                        test: '${r['test']}', name: '${r['name'] ?? ''}', band: _band(shown),
+                        label: overall != null ? tr('Overall band') : tr('{section} band', {'section': _cap('${secs.first['key']}')}),
+                        sections: secs.length > 1 ? [for (final s in secs) (_cap('${s['key']}'), s['band'] == null ? null : _band(s['band']))] : const []),
+                  ),
+                );
+              }),
               for (var i = 0; i < secs.length; i++) _Section(attemptId: attemptId, index: i, s: secs[i].cast<String, dynamic>()),
             ]),
           );
@@ -168,7 +186,7 @@ class _Feedback extends StatelessWidget {
         Row(children: [
           const Icon(Icons.auto_awesome_rounded, color: C.accent, size: 18),
           const SizedBox(width: 6),
-          Expanded(child: Text('Examiner feedback${heading == null ? '' : ' · $heading'}', style: const TextStyle(fontWeight: FontWeight.w800))),
+          Expanded(child: Text(tr('Examiner feedback') + (heading == null ? '' : ' · $heading'), style: const TextStyle(fontWeight: FontWeight.w800))),
         ]),
         if ('${fb['summary'] ?? ''}'.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: Text('${fb['summary']}', style: const TextStyle(height: 1.4))),
         if (_strs(fb['strengths']).isNotEmpty) ...[_h('Strengths'), _bullets(_strs(fb['strengths']), dot: C.green)],
@@ -239,7 +257,7 @@ class _WritingTask extends StatelessWidget {
             _Stat('${st['linking_per_100'] ?? '–'}', 'Linking words per 100'),
           ]),
         ],
-        if ('${t['summary'] ?? ''}'.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 10), child: Text('Examiner: ${t['summary']}', style: const TextStyle(height: 1.4))),
+        if ('${t['summary'] ?? ''}'.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 10), child: Text('${tr('Examiner')}: ${t['summary']}', style: const TextStyle(height: 1.4))),
         if (_strs(t['tips']).isNotEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: _bullets(_strs(t['tips']), dot: C.blue)),
         if (t['feedback'] is Map) _Feedback(fb: (t['feedback'] as Map).cast<String, dynamic>(), heading: name),
         ExpansionTile(
@@ -311,7 +329,7 @@ class _SpeakingState extends State<_Speaking> {
           if (st['linking_per_100'] != null) _Stat('${st['linking_per_100']}', 'Linking words per 100'),
         ]),
       ],
-      if ('${s['summary'] ?? ''}'.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 10), child: Text('Examiner: ${s['summary']}', style: const TextStyle(height: 1.4))),
+      if ('${s['summary'] ?? ''}'.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 10), child: Text('${tr('Examiner')}: ${s['summary']}', style: const TextStyle(height: 1.4))),
       if (_strs(s['tips']).isNotEmpty) ...[_h('How to improve'), _bullets(_strs(s['tips']), dot: C.blue)],
       _h('Your answers'),
       for (var i = 0; i < prompts.length; i++)

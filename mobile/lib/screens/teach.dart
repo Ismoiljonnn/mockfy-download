@@ -66,6 +66,12 @@ class TeachHomeScreen extends StatelessWidget {
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TeachReportScreen())),
                 ),
                 ListTile(
+                  leading: const Icon(Icons.emoji_events_rounded, color: C.gold),
+                  title: Text(tr('Class leaderboard')),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TeachLeagueScreen())),
+                ),
+                ListTile(
                   leading: const Icon(Icons.business_rounded, color: C.accent),
                   title: Text(tr('Centre settings')),
                   trailing: const Icon(Icons.chevron_right_rounded),
@@ -177,7 +183,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
     if (ok != true || q.text.trim().isEmpty) return;
     try {
       final r = await Api.I.post('/api/teach/invite', {'query': q.text.trim(), 'group_id': gid});
-      if (mounted) toast(context, 'Request sent to ${(r['student'] as Map?)?['name'] ?? q.text}.');
+      if (mounted) toast(context, tr('Request sent to {name}.', {'name': (r['student'] as Map?)?['name'] ?? q.text}));
       _refresh();
     } on ApiError catch (e) {
       if (mounted) toast(context, e.message);
@@ -196,6 +202,18 @@ class _StudentsScreenState extends State<StudentsScreen> {
         final shown = _group == null ? all : all.where((s) => s['group_id'] == _group).toList();
         return Scaffold(
           appBar: rootBar(context, AppBar(leading: menuButton(context), title: Text(tr('Students')), actions: [
+            PopupMenuButton<String>(
+              onSelected: (v) {
+                if (v == 'bulk') showBulkAdd(context, groups, _refresh);
+                if (v == 'poster' && groups.isNotEmpty) {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => JoinPosterScreen(groupId: _group ?? (groups.first['id'] as num).toInt())));
+                }
+              },
+              itemBuilder: (_) => [
+                PopupMenuItem(value: 'bulk', child: Text(tr('Add many students'))),
+                if (groups.isNotEmpty) PopupMenuItem(value: 'poster', child: Text(tr('QR poster for the classroom'))),
+              ],
+            ),
             if (groups.isNotEmpty)
               IconButton(
                 tooltip: tr('Join link'),
@@ -214,7 +232,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(children: [
-                ChoiceChip(label: Text('Everyone (${all.length})'), selected: _group == null, onSelected: (_) => setState(() => _group = null)),
+                ChoiceChip(label: Text(tr('Everyone ({n})', {'n': all.length})), selected: _group == null, onSelected: (_) => setState(() => _group = null)),
                 for (final g in groups)
                   Padding(
                     padding: const EdgeInsets.only(left: 8),
@@ -235,7 +253,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                 child: ListTile(
                   leading: Avatar(url: '${s['avatar']}'.startsWith('http') ? '${s['avatar']}' : null, initial: '${s['initial'] ?? '?'}'),
                   title: Text('${s['name']}', style: const TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: Text(s['status'] == 'pending' ? 'Request sent · @${s['username']}' : '${s['group'] ?? 'No group'} · 🔥 ${s['streak'] ?? 0}'),
+                  subtitle: Text(s['status'] == 'pending' ? '${tr('Request sent')} · @${s['username']}' : '${s['group'] ?? tr('No group')} · 🔥 ${s['streak'] ?? 0}'),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: s['status'] == 'pending' ? null : () async {
                     await Navigator.push(context, MaterialPageRoute(builder: (_) => StudentScreen(id: (s['id'] as num).toInt(), name: '${s['name']}')));
@@ -370,7 +388,7 @@ class StudentScreen extends StatelessWidget {
                 final ok = await showDialog<bool>(
                   context: context,
                   builder: (c) => AlertDialog(
-                    title: Text('Remove ${p['name']}?'),
+                    title: Text(tr('Remove {name}?', {'name': p['name']})),
                     content: Text(tr('Their own results stay theirs. You can add them again later.')),
                     actions: [
                       TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancel'))),
@@ -464,7 +482,7 @@ class AssignmentScreen extends StatelessWidget {
           return ListView(padding: const EdgeInsets.all(16), children: [
             Text('${a['title']}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
             const SizedBox(height: 4),
-            Text('${_dueText(a['due_at'])}${a['target_band'] != null ? ' · target ${a['target_band']}' : ''}',
+            Text('${_dueText(a['due_at'])}${a['target_band'] != null ? ' · ${tr('target {n}', {'n': a['target_band']})}' : ''}',
                 style: TextStyle(color: Theme.of(context).hintColor)),
             if ('${a['note'] ?? ''}'.isNotEmpty) ...[const SizedBox(height: 10), Text('${a['note']}')],
             const SizedBox(height: 14),

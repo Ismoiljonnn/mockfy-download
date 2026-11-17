@@ -357,8 +357,16 @@ class _BottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context);
     final dark = t.brightness == Brightness.dark;
-    return Material(
-      color: t.colorScheme.surface,
+    // at night the bar (and the phone's own button strip under it) is black
+    final barColour = dark ? Colors.black : t.colorScheme.surface;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        systemNavigationBarColor: barColour,
+        systemNavigationBarDividerColor: barColour,
+        systemNavigationBarIconBrightness: dark ? Brightness.light : Brightness.dark,
+      ),
+      child: Material(
+      color: barColour,
       child: SafeArea(
         top: false,
         child: SizedBox(
@@ -391,6 +399,7 @@ class _BottomBar extends StatelessWidget {
           ]),
         ),
       ),
+    ),
     );
   }
 }

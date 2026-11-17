@@ -24,6 +24,11 @@ app.commandLine.appendSwitch('enable-gpu-rasterization');
 app.commandLine.appendSwitch('enable-zero-copy');
 if (process.platform === 'win32') app.setAppUserModelId('uz.mockfy.desktop');   // the taskbar and notifications know it as Mockfy
 
+// how the app introduces itself to mockfy.uz (pages, the service worker, everything): the site then opens
+// on sign-in instead of the landing page, keeps room for the window buttons and lists every section
+const UA = `${app.userAgentFallback} MockfyDesktop/${app.getVersion()}`;
+app.userAgentFallback = UA;
+
 // ---- one window, and mockfy:// links reach it -------------------------------------------
 // A second launch (a mockfy:// link from the browser, a second click on the icon) hands its link to the
 // window already open and ends at once, before it can draw a window of its own.
@@ -107,7 +112,7 @@ function createWindow() {
   view = win;                                     // the page is the window's own contents
   if (st.maximized) win.maximize();
   const wc = win.webContents;
-  wc.setUserAgent(`${wc.getUserAgent()} MockfyDesktop/${app.getVersion()}`);
+  wc.setUserAgent(UA);
 
   win.once('ready-to-show', () => win.show());
   ['resize', 'move', 'close'].forEach((ev) => win.on(ev, saveState));
@@ -174,6 +179,8 @@ function ensureStartMenuShortcut() {
 }
 
 if (FIRST) app.whenReady().then(() => {
+  // the site's service worker fetches pages too: every request of the app says it is the desktop app
+  session.defaultSession.setUserAgent(UA);
   // the microphone for Speaking, notifications; only for Mockfy itself
   session.defaultSession.setPermissionRequestHandler((wc, permission, cb) => {
     cb(isOurs(wc.getURL()) && ['media', 'notifications', 'clipboard-sanitized-write', 'fullscreen'].includes(permission));

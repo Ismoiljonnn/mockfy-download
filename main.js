@@ -120,10 +120,11 @@ function createWindow() {
   win.on('page-title-updated', (e) => e.preventDefault());   // the window is always just "Mockfy" (taskbar, Alt+Tab)
   wc.on('did-navigate', applyLook);
   // full screen (F11): no window buttons, so the page takes back the room it kept for them
-  const tellFull = () => { if (!wc.isDestroyed()) wc.send('mf-full', win.isFullScreen()); };
-  win.on('enter-full-screen', tellFull);
-  win.on('leave-full-screen', tellFull);
-  ipcMain.on('mf-ask-full', (e) => { if (e.sender === wc) tellFull(); });
+  // (the state is passed as the event says: isFullScreen() still has the old value while these fire on Windows)
+  const tellFull = (on) => { if (!wc.isDestroyed()) wc.send('mf-full', on); };
+  win.on('enter-full-screen', () => tellFull(true));
+  win.on('leave-full-screen', () => tellFull(false));
+  ipcMain.on('mf-ask-full', (e) => { if (e.sender === wc) tellFull(win.isFullScreen()); });
   if (process.env.MOCKFY_SHOT) {                  // development: a picture of the window after each page loads
     wc.on('did-finish-load', () => setTimeout(() => wc.capturePage().then((img) => fs.writeFileSync(process.env.MOCKFY_SHOT, img.toPNG())), 2500));
   }

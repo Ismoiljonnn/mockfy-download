@@ -30,20 +30,21 @@ Future<void> showJoinLink(BuildContext context, int groupId) async {
     isScrollControlled: true,
     builder: (sheet) => StatefulBuilder(
       builder: (sheet, set) {
-        final url = '${r!['url']}';
+        final link = r!;
+        final url = '${link['url']}';
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               Text(tr('Join link'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-              Text('${(r['group'] as Map?)?['name'] ?? ''}', style: TextStyle(color: Theme.of(sheet).hintColor)),
+              Text('${(link['group'] as Map?)?['name'] ?? ''}', style: TextStyle(color: Theme.of(sheet).hintColor)),
               const SizedBox(height: 14),
-              if ('${r['qr'] ?? ''}'.isNotEmpty)
+              if ('${link['qr'] ?? ''}'.isNotEmpty)
                 Center(
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
-                    child: SvgPicture.string('${r['qr']}', width: 200, height: 200),
+                    child: SvgPicture.string('${link['qr']}', width: 200, height: 200),
                   ),
                 ),
               const SizedBox(height: 12),

@@ -91,7 +91,7 @@ class _GamesScreenState extends State<GamesScreen> {
                 title: const Text('My words', style: TextStyle(fontWeight: FontWeight.w700)),
                 subtitle: const Text('Review the words you saved, a few each day'),
                 trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WordsReviewScreen())),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WordsBoardScreen())),
               ),
             ),
             const SizedBox(height: 12),
@@ -147,9 +147,10 @@ Widget _gameFor(String id, String title) => switch (id) {
 
 // ---------------------------------------------------------------- Hudi, reacting
 class Hudi extends StatefulWidget {
-  const Hudi({super.key, required this.mood, this.size = 64});
-  final int mood;          // bumps on every answer: >0 right, <0 wrong
+  const Hudi({super.key, required this.mood, this.size = 64, this.face});
+  final int mood;          // bumps on every answer: >0 right, <0 wrong, 0 waiting
   final double size;
+  final String? face;      // a fixed mood: idle, happy, cheer, thinking, sad, sleep
   @override
   State<Hudi> createState() => _HudiState();
 }
@@ -169,18 +170,23 @@ class _HudiState extends State<Hudi> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
+  String get _face => widget.face ?? (widget.mood > 0 ? 'happy' : widget.mood < 0 ? 'sad' : 'idle');
+
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
         animation: _c,
         builder: (context, child) {
           final t = _c.value;
           final happy = widget.mood >= 0;
-          final dy = happy ? -18 * sin(pi * t) : 0.0;                      // a hop when right
-          final dx = happy ? 0.0 : 8 * sin(pi * 6 * t) * (1 - t);         // a shake when wrong
+          final dy = happy ? -16 * sin(pi * t) : 0.0;                      // a hop when right
+          final dx = happy ? 0.0 : 7 * sin(pi * 6 * t) * (1 - t);         // a shake when wrong
           return Transform.translate(offset: Offset(dx, dy), child: child);
         },
-        child: ClipRRect(borderRadius: BorderRadius.circular(widget.size * .25),
-            child: Image.asset('assets/icon.png', width: widget.size, height: widget.size)),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          child: Image.asset('assets/hudi/$_face.png', key: ValueKey(_face), width: widget.size, height: widget.size,
+              fit: BoxFit.contain, filterQuality: FilterQuality.high),
+        ),
       );
 }
 
@@ -203,7 +209,7 @@ class _GameOver extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(28),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Hudi(mood: 1, size: 96),
+            const Hudi(mood: 1, size: 110, face: 'cheer'),
             const SizedBox(height: 16),
             Text('$score', style: const TextStyle(fontSize: 56, fontWeight: FontWeight.w900, color: C.accent)),
             Text(line ?? 'points', style: TextStyle(color: Theme.of(context).hintColor, fontSize: 16)),
@@ -829,6 +835,160 @@ class _SpellGameState extends State<SpellGame> {
 }
 
 // ---------------------------------------------------------------- My words (saved words, spaced review)
+const _stageNames = ['1 day', '3 days', '1 week', '2 weeks', '1 month', 'Learned'];
+const _stageColours = [C.red, C.accent, C.gold, C.blue, Color(0xFF9B7BEA), C.green];
+
+/// My words, as on the website: how many words wait at each stage, how many are due today (Review them),
+/// and every saved word with its meaning and stage.
+class WordsBoardScreen extends StatefulWidget {
+  const WordsBoardScreen({super.key});
+  @override
+  State<WordsBoardScreen> createState() => _WordsBoardScreenState();
+}
+
+class _WordsBoardScreenState extends State<WordsBoardScreen> {
+  Key _k = UniqueKey();
+  String _q = '';
+
+  Future<void> _remove(Map w) async {
+    try {
+      await Api.I.post('/api/games/words/remove', {'word': w['word']});
+      setState(() => _k = UniqueKey());
+    } on ApiError catch (e) {
+      if (mounted) toast(context, e.message);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: rootBar(context, AppBar(title: const Text('My words'))),
+      body: Loader<Map<String, dynamic>>(
+        key: _k,
+        load: () => Api.I.get('/api/app/words'),
+        build: (context, d, reload) {
+          final boxes = (d['boxes'] as List? ?? []).cast<Map>();
+          final words = (d['words'] as List? ?? []).cast<Map>();
+          final due = (d['due'] as num?)?.toInt() ?? 0;
+          final q = _q.trim().toLowerCase();
+          final shown = q.isEmpty ? words : words.where((w) => '${w['word']} ${w['definition']}'.toLowerCase().contains(q)).toList();
+          final dark = Theme.of(context).brightness == Brightness.dark;
+          return ListView(padding: const EdgeInsets.all(16), children: [
+            // today's review
+            Card(
+              color: C.green.withValues(alpha: .12),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(children: [
+                  Hudi(mood: 0, size: 64, face: due > 0 ? 'thinking' : 'happy'),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(due > 0 ? '$due words to review today' : 'Nothing to review today',
+                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 2),
+                      Text('${d['total'] ?? 0} words saved', style: TextStyle(color: Theme.of(context).hintColor)),
+                    ]),
+                  ),
+                  if (due > 0)
+                    FilledButton(
+                      style: FilledButton.styleFrom(minimumSize: const Size(0, 44), backgroundColor: C.green),
+                      onPressed: () async {
+                        await Navigator.push(context, MaterialPageRoute(builder: (_) => const WordsReviewScreen()));
+                        setState(() => _k = UniqueKey());
+                      },
+                      child: const Text('Review'),
+                    ),
+                ]),
+              ),
+            ),
+            const SizedBox(height: 12),
+            // the stages: each word climbs one when you remember it, back to the first when you forget
+            Row(children: [
+              for (var i = 0; i < boxes.length && i < _stageNames.length; i++)
+                Expanded(
+                  child: Container(
+                    margin: EdgeInsets.only(right: i < boxes.length - 1 ? 6 : 0),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(color: _stageColours[i].withValues(alpha: dark ? .2 : .13), borderRadius: BorderRadius.circular(12)),
+                    child: Column(children: [
+                      Text('${boxes[i]['n'] ?? 0}', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: _stageColours[i])),
+                      const SizedBox(height: 2),
+                      Text(_stageNames[i], textAlign: TextAlign.center, style: TextStyle(fontSize: 10.5, color: Theme.of(context).hintColor)),
+                    ]),
+                  ),
+                ),
+            ]),
+            const SizedBox(height: 14),
+            if (words.isNotEmpty)
+              TextField(
+                onChanged: (v) => setState(() => _q = v),
+                decoration: const InputDecoration(hintText: 'Find a word', prefixIcon: Icon(Icons.search_rounded), isDense: true),
+              ),
+            const SizedBox(height: 10),
+            if (words.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(28),
+                child: Column(children: [
+                  const Hudi(mood: 0, size: 90, face: 'sleep'),
+                  const SizedBox(height: 10),
+                  Text('No saved words yet. In Reading, tap a word to see its meaning and save it here.',
+                      textAlign: TextAlign.center, style: TextStyle(color: Theme.of(context).hintColor)),
+                ]),
+              ),
+            for (final w in shown)
+              Card(
+                margin: const EdgeInsets.only(bottom: 8),
+                child: ListTile(
+                  title: Row(children: [
+                    Flexible(child: Text('${w['word']}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
+                    if ('${w['pos'] ?? ''}'.isNotEmpty) Text('  ${w['pos']}', style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor)),
+                  ]),
+                  subtitle: Text('${w['translation'] ?? ''}'.isNotEmpty ? '${w['translation']}' : '${w['definition'] ?? ''}',
+                      maxLines: 2, overflow: TextOverflow.ellipsis),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _stageColours[((w['stage'] as num?)?.toInt() ?? 0).clamp(0, 5)].withValues(alpha: .18),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(w['mastered'] == true ? 'Learned' : _stageNames[((w['stage'] as num?)?.toInt() ?? 0).clamp(0, 4)],
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _stageColours[((w['stage'] as num?)?.toInt() ?? 0).clamp(0, 5)])),
+                  ),
+                  onTap: () => showModalBottomSheet(
+                    context: context,
+                    showDragHandle: true,
+                    builder: (c) => SafeArea(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text('${w['word']}  ${w['ipa'] ?? ''}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+                          if ('${w['definition'] ?? ''}'.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: Text('${w['definition']}', style: const TextStyle(fontSize: 16))),
+                          if ('${w['sentence'] ?? w['example'] ?? ''}'.isNotEmpty)
+                            Padding(padding: const EdgeInsets.only(top: 8),
+                                child: Text('${'${w['sentence'] ?? ''}'.isNotEmpty ? w['sentence'] : w['example']}', style: const TextStyle(fontStyle: FontStyle.italic))),
+                          if ((w['synonyms'] as List? ?? []).isNotEmpty)
+                            Padding(padding: const EdgeInsets.only(top: 8), child: Text('Synonyms: ${(w['synonyms'] as List).join(', ')}')),
+                          const SizedBox(height: 16),
+                          TextButton.icon(
+                            style: TextButton.styleFrom(foregroundColor: C.red),
+                            icon: const Icon(Icons.delete_outline_rounded),
+                            label: const Text('Remove from My words'),
+                            onPressed: () { Navigator.pop(c); _remove(w); },
+                          ),
+                        ]),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ]);
+        },
+      ),
+    );
+  }
+}
+
 class WordsReviewScreen extends StatefulWidget {
   const WordsReviewScreen({super.key});
   @override
@@ -875,12 +1035,12 @@ class _WordsReviewScreenState extends State<WordsReviewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: rootBar(context, AppBar(title: const Text('My words'))),
+      appBar: AppBar(title: const Text('Review')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _items.isEmpty || _i >= _items.length
               ? Center(child: Padding(padding: const EdgeInsets.all(28), child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Hudi(mood: 1, size: 88),
+                  Hudi(mood: 0, size: 100, face: _items.isEmpty ? 'sleep' : 'cheer'),
                   const SizedBox(height: 16),
                   Text(_items.isEmpty ? 'No words to review today.' : 'All done for today!', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 6),

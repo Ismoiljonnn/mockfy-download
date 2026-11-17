@@ -25,7 +25,12 @@ class _WebPageState extends State<WebPage> {
     _open();
   }
 
+  Color _bg = const Color(0xFF1A1A1A);
+
   Future<void> _open() async {
+    await Future<void>.delayed(Duration.zero);          // after the first frame: the theme is known
+    if (!mounted) return;
+    _bg = Theme.of(context).scaffoldBackgroundColor;
     final host = Uri.parse(kBaseUrl).host;
     final jar = WebViewCookieManager();
     for (final c in await Api.I.cookies()) {
@@ -33,6 +38,7 @@ class _WebPageState extends State<WebPage> {
     }
     final c = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(_bg)
       ..setUserAgent('MockfyMobile/1.0 (Android) Mozilla/5.0 Mobile')
       ..setNavigationDelegate(NavigationDelegate(
         onProgress: (p) { if (mounted) setState(() => _progress = p); },

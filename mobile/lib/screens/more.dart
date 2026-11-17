@@ -86,7 +86,7 @@ class FeaturesScreen extends StatelessWidget {
     final items = <(IconData, Color, String, String, Widget Function())>[
       (Icons.emoji_events_rounded, C.gold, 'Leaderboard', 'This week and all time', () => LeaderboardScreen(onSignedOut: onSignedOut)),
       (Icons.sports_esports_rounded, C.accent, 'Games', 'Seven word games', () => const GamesScreen()),
-      (Icons.style_rounded, C.green, 'My words', 'Words you saved', () => const WordsReviewScreen()),
+      (Icons.style_rounded, C.green, 'My words', 'Words you saved', () => const WordsBoardScreen()),
       (Icons.event_rounded, const Color(0xFF9B7BEA), 'Mock Day', 'Test day with everyone', () => const MockDayScreen()),
       (Icons.history_rounded, C.blue, 'My results', 'Bands and answers', () => const HistoryScreen()),
       (Icons.lightbulb_rounded, C.gold, 'Recommendations', 'What to work on next', () => const RecommendationsScreen()),
@@ -420,7 +420,7 @@ Widget? appScreenFor(String url, {String title = 'Mockfy'}) {
   if (prof != null) return ProfileScreen(username: prof.group(1)!, onSignedOut: () {});
   if (path.startsWith('/mockday')) return const MockDayScreen();
   if (path.startsWith('/games')) return const GamesScreen();
-  if (path.startsWith('/vocab')) return const WordsReviewScreen();
+  if (path.startsWith('/vocab')) return const WordsBoardScreen();
   if (path.startsWith('/notifications')) return const NotificationsScreen();
   if (path.startsWith('/recommendations')) return const RecommendationsScreen();
   if (path.startsWith('/history')) return const HistoryScreen();

@@ -90,7 +90,7 @@ class _DesktopShellState extends State<DesktopShell> {
       _Item('Games', Icons.sports_esports_rounded, () => const GamesScreen()),
       _Item('Leaderboard', Icons.emoji_events_rounded, () => LeaderboardScreen(onSignedOut: so)),
       _Item('Shop', Icons.storefront_rounded, () => ShopScreen(onSignedOut: so)),
-      _Item('My words', Icons.style_rounded, () => const WordsReviewScreen()),
+      _Item('My words', Icons.style_rounded, () => const WordsBoardScreen()),
       _Item('My results', Icons.history_rounded, () => const HistoryScreen()),
       _Item('Recommendations', Icons.lightbulb_rounded, () => const RecommendationsScreen()),
     ];

@@ -38,6 +38,7 @@ flutter:
   assets:
     - assets/icon.png
     - assets/hudi.png
+    - assets/hudi/
     - assets/sfx/
 
 flutter_launcher_icons:

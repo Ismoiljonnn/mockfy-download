@@ -15,8 +15,11 @@ LANGS = ['uz', 'ru', 'tr', 'ar', 'hi', 'tg', 'ky', 'zh']
 LIT = re.compile(r"""tr\(\s*'((?:[^'\\]|\\.)*)'|tr\(\s*"((?:[^"\\]|\\.)*)\"""")
 
 
+EXTRA = ['1 day', '3 days', '1 week', '2 weeks', '1 month', 'Learned']   # passed to tr() as variables
+
+
 def keys():
-    out = set()
+    out = set(EXTRA)
     for dp, _, fs in os.walk(os.path.join(APP, 'lib')):
         for f in fs:
             if f.endswith('.dart'):

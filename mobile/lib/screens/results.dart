@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 
 import '../i18n.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../api.dart';
@@ -78,7 +79,25 @@ class _Section extends StatelessWidget {
       } else if (key == 'speaking') {
         kids.add(_Speaking(attemptId: attemptId, s: s));
       } else {
-        if (s['raw'] != null) kids.add(Padding(padding: const EdgeInsets.only(top: 6), child: Text('${s['raw']} / ${s['total']} correct', style: TextStyle(color: hint))));
+        if (s['raw'] != null) {
+          final raw = (s['raw'] as num), total = (s['total'] as num?) ?? 0;
+          final used = (s['timeUsed'] as num?)?.toInt();
+          kids.add(Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: Wrap(spacing: 8, runSpacing: 8, children: [
+              _Stat('$raw / $total', tr('Correct answers')),
+              _Stat('${total == 0 ? 0 : (raw / total * 100).round()}%', tr('Accuracy')),
+              if (used != null) _Stat('${used ~/ 60}:${(used % 60).toString().padLeft(2, '0')}', tr('Time used')),
+            ]),
+          ));
+          if (s['estimated'] == true) {
+            kids.add(Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(tr('Official band tables are for 40 questions. This {n}-question set is scaled to 40, so treat the band as an estimate.', {'n': total}),
+                  style: TextStyle(fontSize: 12.5, color: hint)),
+            ));
+          }
+        }
         final by = ((s['byType'] as Map?) ?? {});
         if (by.isNotEmpty) {
           kids.add(Padding(padding: EdgeInsets.fromLTRB(0, 14, 0, 6), child: Text(tr('By question type'), style: TextStyle(fontWeight: FontWeight.w700))));
@@ -96,6 +115,10 @@ class _Section extends StatelessWidget {
               ]),
             ));
           }
+        }
+        if (s['recordings'] is List && (s['recordings'] as List).isNotEmpty) {
+          kids.add(_h(tr('Listen again')));
+          for (final rec in (s['recordings'] as List).cast<Map>()) { kids.add(ListenAgain(rec: rec.cast<String, dynamic>())); }
         }
         kids.add(Padding(
           padding: const EdgeInsets.only(top: 8),
@@ -314,5 +337,113 @@ class _SpeakingState extends State<_Speaking> {
           ],
         ),
     ]);
+  }
+}
+
+/// After the test: a Listening part again, as many times as you like, with what is said written out.
+/// A recorded part plays its file; a part written as a script is read aloud line by line.
+class ListenAgain extends StatefulWidget {
+  const ListenAgain({super.key, required this.rec});
+  final Map<String, dynamic> rec;
+  @override
+  State<ListenAgain> createState() => _ListenAgainState();
+}
+
+class _ListenAgainState extends State<ListenAgain> {
+  final _audio = AudioPlayer();
+  final _tts = FlutterTts();
+  bool _playing = false, _loading = false;
+  int _line = -1;
+  int _token = 0;
+  Duration _pos = Duration.zero, _dur = Duration.zero;
+
+  List<Map> get _lines => ((widget.rec['lines'] as List?) ?? []).cast<Map>();
+  bool get _isAudio => widget.rec['type'] == 'audio';
+
+  @override
+  void initState() {
+    super.initState();
+    _audio.positionStream.listen((p) { if (mounted) setState(() => _pos = p); });
+    _audio.durationStream.listen((d) { if (mounted && d != null) setState(() => _dur = d); });
+  }
+
+  @override
+  void dispose() {
+    _token++;
+    _audio.dispose();
+    _tts.stop();
+    super.dispose();
+  }
+
+  Future<void> _stop() async {
+    _token++;
+    await _audio.pause();
+    await _tts.stop();
+    if (mounted) setState(() { _playing = false; _line = -1; });
+  }
+
+  Future<void> _play() async {
+    if (_playing) { await _stop(); return; }
+    final my = ++_token;
+    setState(() { _playing = true; _loading = true; });
+    try {
+      if (_isAudio) {
+        final f = await Api.I.media('${widget.rec['src']}');
+        if (my != _token) return;
+        await _audio.setFilePath(f.path);
+        if (mounted) setState(() => _loading = false);
+        await _audio.play();
+      } else {
+        if (mounted) setState(() => _loading = false);
+        await _tts.awaitSpeakCompletion(true);
+        await _tts.setSpeechRate(.47);
+        for (var i = 0; i < _lines.length; i++) {
+          if (my != _token || !mounted) return;
+          setState(() => _line = i);
+          await _tts.setLanguage('en-GB');
+          await _tts.speak('${_lines[i]['text'] ?? ''}');
+        }
+      }
+    } catch (_) {
+      if (mounted) toast(context, tr('Could not play the recording.'));
+    }
+    if (my == _token && mounted) setState(() { _playing = false; _loading = false; _line = -1; });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hint = Theme.of(context).hintColor;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      color: C.blue.withValues(alpha: .06),
+      child: ExpansionTile(
+        leading: IconButton.filledTonal(
+          onPressed: _play,
+          icon: _loading
+              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.2))
+              : Icon(_playing ? Icons.stop_rounded : Icons.play_arrow_rounded),
+        ),
+        title: Text('${widget.rec['title'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w700)),
+        subtitle: _isAudio && _dur.inMilliseconds > 0
+            ? LinearProgressIndicator(value: (_pos.inMilliseconds / _dur.inMilliseconds).clamp(0, 1).toDouble(), minHeight: 3, color: C.blue)
+            : Text(tr('Transcript'), style: TextStyle(color: hint, fontSize: 12)),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        children: [
+          if (_lines.isEmpty) Text(tr('No transcript.'), style: TextStyle(color: hint)),
+          for (var i = 0; i < _lines.length; i++)
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: i == _line ? C.gold.withValues(alpha: .2) : null),
+              child: Text.rich(TextSpan(children: [
+                if ('${_lines[i]['speaker'] ?? ''}'.isNotEmpty)
+                  TextSpan(text: '${_lines[i]['speaker']}: ', style: const TextStyle(fontWeight: FontWeight.w800)),
+                TextSpan(text: '${_lines[i]['text'] ?? ''}'),
+              ]), style: const TextStyle(height: 1.4)),
+            ),
+        ],
+      ),
+    );
   }
 }

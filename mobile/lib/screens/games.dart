@@ -1087,6 +1087,7 @@ class WordsBoardScreen extends StatefulWidget {
 class _WordsBoardScreenState extends State<WordsBoardScreen> {
   Key _k = UniqueKey();
   String _q = '';
+  int? _stage;                     // a stage picked above: only its words are listed
 
   Future<void> _remove(Map w) async {
     try {
@@ -1109,7 +1110,8 @@ class _WordsBoardScreenState extends State<WordsBoardScreen> {
           final words = (d['words'] as List? ?? []).cast<Map>();
           final due = (d['due'] as num?)?.toInt() ?? 0;
           final q = _q.trim().toLowerCase();
-          final shown = q.isEmpty ? words : words.where((w) => '${w['word']} ${w['definition']}'.toLowerCase().contains(q)).toList();
+          bool inStage(Map w) => _stage == null || (_stage == 5 ? w['mastered'] == true : w['mastered'] != true && (w['stage'] as num?)?.toInt() == _stage);
+          final shown = words.where((w) => inStage(w) && (q.isEmpty || '${w['word']} ${w['definition']}'.toLowerCase().contains(q))).toList();
           final dark = Theme.of(context).brightness == Brightness.dark;
           return ListView(padding: const EdgeInsets.all(16), children: [
             // today's review
@@ -1145,15 +1147,23 @@ class _WordsBoardScreenState extends State<WordsBoardScreen> {
             Row(children: [
               for (var i = 0; i < boxes.length && i < _stageNames.length; i++)
                 Expanded(
-                  child: Container(
+                  // tap a stage to see only its words; tap again for all
+                  child: GestureDetector(
+                    onTap: () => setState(() => _stage = _stage == i ? null : i),
+                    child: Container(
                     margin: EdgeInsets.only(right: i < boxes.length - 1 ? 6 : 0),
                     padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(color: _stageColours[i].withValues(alpha: dark ? .2 : .13), borderRadius: BorderRadius.circular(12)),
+                    decoration: BoxDecoration(
+                      color: _stageColours[i].withValues(alpha: _stage == i ? (dark ? .45 : .32) : (dark ? .2 : .13)),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _stage == i ? _stageColours[i] : Colors.transparent, width: 1.5),
+                    ),
                     child: Column(children: [
                       Text('${boxes[i]['n'] ?? 0}', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: _stageColours[i])),
                       const SizedBox(height: 2),
-                      Text(_stageNames[i], textAlign: TextAlign.center, style: TextStyle(fontSize: 10.5, color: Theme.of(context).hintColor)),
+                      Text(tr(_stageNames[i]), textAlign: TextAlign.center, style: TextStyle(fontSize: 10.5, color: Theme.of(context).hintColor)),
                     ]),
+                  ),
                   ),
                 ),
             ]),
@@ -1187,11 +1197,11 @@ class _WordsBoardScreenState extends State<WordsBoardScreen> {
                   trailing: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _stageColours[((w['stage'] as num?)?.toInt() ?? 0).clamp(0, 5)].withValues(alpha: .18),
+                      color: _stageColours[w['mastered'] == true ? 5 : ((w['stage'] as num?)?.toInt() ?? 0).clamp(0, 4)].withValues(alpha: .18),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Text(w['mastered'] == true ? 'Learned' : _stageNames[((w['stage'] as num?)?.toInt() ?? 0).clamp(0, 4)],
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _stageColours[((w['stage'] as num?)?.toInt() ?? 0).clamp(0, 5)])),
+                    child: Text(tr(w['mastered'] == true ? 'Learned' : _stageNames[((w['stage'] as num?)?.toInt() ?? 0).clamp(0, 4)]),
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _stageColours[w['mastered'] == true ? 5 : ((w['stage'] as num?)?.toInt() ?? 0).clamp(0, 4)])),
                   ),
                   onTap: () => showModalBottomSheet(
                     context: context,

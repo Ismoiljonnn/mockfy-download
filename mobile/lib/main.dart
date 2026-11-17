@@ -31,6 +31,16 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Future.wait([Api.I.init(), Prefs.I.init(), Notify.I.init(), I18n.I.init()]);
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  // a page that fails to draw shows a short message instead of an empty white screen
+  ErrorWidget.builder = (details) => Material(
+        color: Colors.transparent,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(tr('Something went wrong on this page. Go back and open it again.'), textAlign: TextAlign.center),
+          ),
+        ),
+      );
   // news from Mockfy reaches the phone even when the app is closed: Android wakes this check about
   // every 15 minutes (its shortest period) while there is a connection
   try {

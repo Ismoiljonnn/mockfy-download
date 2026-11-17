@@ -19,6 +19,56 @@
   "uz": "+{n} ball",
   "zh": "+{n} 积分"
  },
+ "1 day": {
+  "ar": "يوم واحد",
+  "hi": "1 दिन",
+  "ky": "1 күн",
+  "ru": "1 день",
+  "tg": "1 рӯз",
+  "tr": "1 gün",
+  "uz": "1 kun",
+  "zh": "1 天"
+ },
+ "1 month": {
+  "ar": "شهر",
+  "hi": "1 महीना",
+  "ky": "1 ай",
+  "ru": "1 месяц",
+  "tg": "1 моҳ",
+  "tr": "1 ay",
+  "uz": "1 oy",
+  "zh": "1 个月"
+ },
+ "1 week": {
+  "ar": "أسبوع",
+  "hi": "1 हफ़्ता",
+  "ky": "1 жума",
+  "ru": "1 неделя",
+  "tg": "1 ҳафта",
+  "tr": "1 hafta",
+  "uz": "1 hafta",
+  "zh": "1 周"
+ },
+ "2 weeks": {
+  "ar": "أسبوعان",
+  "hi": "2 हफ़्ते",
+  "ky": "2 жума",
+  "ru": "2 недели",
+  "tg": "2 ҳафта",
+  "tr": "2 hafta",
+  "uz": "2 hafta",
+  "zh": "2 周"
+ },
+ "3 days": {
+  "ar": "3 أيام",
+  "hi": "3 दिन",
+  "ky": "3 күн",
+  "ru": "3 дня",
+  "tg": "3 рӯз",
+  "tr": "3 gün",
+  "uz": "3 kun",
+  "zh": "3 天"
+ },
  "A nudge to practise, so your streak keeps going": {
   "ar": "تذكير بالتدريب حتى تستمر سلسلتك",
   "hi": "अभ्यास की याद, ताकि आपकी स्ट्रीक चलती रहे",
@@ -529,6 +579,16 @@
   "uz": "So'nggi yil",
   "zh": "最近一年"
  },
+ "Learned": {
+  "ar": "تم تعلّمها",
+  "hi": "सीख लिया",
+  "ky": "Үйрөнүлдү",
+  "ru": "Выучено",
+  "tg": "Омӯхта шуд",
+  "tr": "Öğrenildi",
+  "uz": "O'rganilgan",
+  "zh": "已掌握"
+ },
  "Less ": {
   "ar": "أقل ",
   "hi": "कम ",
@@ -558,6 +618,16 @@
   "tr": "Veliler için bağlantı",
   "uz": "Ota-onalar uchun havola",
   "zh": "家长链接"
+ },
+ "Listen again": {
+  "ar": "استمع مجددًا",
+  "hi": "फिर से सुनें",
+  "ky": "Кайра угуу",
+  "ru": "Послушать снова",
+  "tg": "Боз гӯш кардан",
+  "tr": "Tekrar dinle",
+  "uz": "Qayta tinglash",
+  "zh": "再听一遍"
  },
  "Listen to one sentence, then say it the same way. It builds fluency and pronunciation for IELTS Speaking.": {
   "ar": "استمع إلى جملة ثم قلها بالطريقة نفسها. هذا يبني الطلاقة والنطق لمحادثة IELTS.",
@@ -798,6 +868,16 @@
   "tr": "Test bulunamadı.",
   "uz": "Test topilmadi.",
   "zh": "未找到测试。"
+ },
+ "No transcript.": {
+  "ar": "لا يوجد نص.",
+  "hi": "कोई ट्रांसक्रिप्ट नहीं।",
+  "ky": "Текст жок.",
+  "ru": "Нет расшифровки.",
+  "tg": "Матн нест.",
+  "tr": "Metin yok.",
+  "uz": "Matn yo'q.",
+  "zh": "没有文本。"
  },
  "No videos yet.": {
   "ar": "لا مقاطع بعد.",
@@ -1119,6 +1199,16 @@
   "uz": "Mockfy'dan chiqasizmi?",
   "zh": "退出 Mockfy？"
  },
+ "Something went wrong on this page. Go back and open it again.": {
+  "ar": "حدث خطأ في هذه الصفحة. ارجع وافتحها مرة أخرى.",
+  "hi": "इस पेज पर कुछ गलत हो गया। वापस जाकर फिर से खोलें।",
+  "ky": "Бул баракта ката кетти. Артка кайтып, кайра ачыңыз.",
+  "ru": "На этой странице произошла ошибка. Вернитесь назад и откройте её снова.",
+  "tg": "Дар ин саҳифа хато рух дод. Баргардед ва боз кушоед.",
+  "tr": "Bu sayfada bir sorun oluştu. Geri dönüp tekrar açın.",
+  "uz": "Bu sahifada xatolik yuz berdi. Orqaga qaytib, qayta oching.",
+  "zh": "此页面出错了，请返回后重新打开。"
+ },
  "Something went wrong. Please try this question again.": {
   "ar": "حدث خطأ ما. يُرجى تجربة هذا السؤال مرة أخرى.",
   "hi": "कुछ गलत हो गया। कृपया यह सवाल फिर से करें।",
@@ -1368,6 +1458,16 @@
   "tr": "Bu hafta ve tüm zamanlar",
   "uz": "Bu hafta va umumiy",
   "zh": "本周和总榜"
+ },
+ "Transcript": {
+  "ar": "النص",
+  "hi": "ट्रांसक्रिप्ट",
+  "ky": "Текст",
+  "ru": "Расшифровка",
+  "tg": "Матн",
+  "tr": "Metin",
+  "uz": "Matn",
+  "zh": "文本"
  },
  "Type the word": {
   "ar": "اكتب الكلمة",

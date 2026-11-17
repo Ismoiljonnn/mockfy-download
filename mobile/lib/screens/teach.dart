@@ -283,7 +283,12 @@ class StudentScreen extends StatelessWidget {
           final p = (d['profile'] as Map).cast<String, dynamic>();
           final best = (p['best'] as Map?) ?? {};
           final attempts = (d['attempts'] as List? ?? []).cast<Map>();
-          final hw = (d['homework'] as List? ?? []).cast<Map>();
+          // the student's homework from this teacher: {open: [...], done: [...]} (null when none)
+          final hwRaw = (d['homework'] as Map?) ?? {};
+          final hw = <Map>[
+            for (final h in ((hwRaw['open'] as List?) ?? []).cast<Map>()) {...h, 'done': false},
+            for (final h in ((hwRaw['done'] as List?) ?? []).cast<Map>()) {...h, 'done': true},
+          ];
           final groups = (d['groups'] as List? ?? []).cast<Map>();
           return ListView(padding: const EdgeInsets.all(16), children: [
             Row(children: [

@@ -28,6 +28,7 @@ import 'widgets.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Future.wait([Api.I.init(), Prefs.I.init(), Notify.I.init()]);
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   // news from Mockfy reaches the phone even when the app is closed: Android wakes this check about
   // every 15 minutes (its shortest period) while there is a connection
   try {
@@ -70,6 +71,23 @@ class MockfyApp extends StatelessWidget {
           themeAnimationDuration: const Duration(milliseconds: 280),
           themeAnimationCurve: Curves.easeOutCubic,
           home: const Intro(),
+          // the phone's own bars follow day / night on every page (status icons, the button strip at the foot)
+          builder: (context, child) {
+            final dark = Theme.of(context).brightness == Brightness.dark;
+            final bg = Theme.of(context).scaffoldBackgroundColor;
+            return AnnotatedRegion<SystemUiOverlayStyle>(
+              value: SystemUiOverlayStyle(
+                statusBarColor: Colors.transparent,
+                statusBarIconBrightness: dark ? Brightness.light : Brightness.dark,
+                statusBarBrightness: dark ? Brightness.dark : Brightness.light,
+                systemNavigationBarColor: dark ? Colors.black : bg,
+                systemNavigationBarDividerColor: dark ? Colors.black : bg,
+                systemNavigationBarIconBrightness: dark ? Brightness.light : Brightness.dark,
+                systemNavigationBarContrastEnforced: false,
+              ),
+              child: child!,
+            );
+          },
         ),
       );
 }

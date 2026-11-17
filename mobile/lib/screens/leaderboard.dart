@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../i18n.dart';
+
 import '../desktop_shell.dart';
 import '../api.dart';
 import '../theme.dart';
@@ -20,7 +22,7 @@ class LeaderboardScreen extends StatelessWidget {
       child: Scaffold(
         appBar: rootBar(context, AppBar(
           leading: menuButton(context),
-          title: const Text('Leaderboard'),
+          title: Text(tr('Leaderboard')),
           bottom: const TabBar(tabs: [Tab(text: 'This week'), Tab(text: 'All time')]),
         )),
         body: TabBarView(children: [
@@ -118,7 +120,7 @@ class _BoardViewState extends State<_BoardView> {
           onChanged: _onSearch,
           textInputAction: TextInputAction.search,
           decoration: InputDecoration(
-            hintText: 'Search learners by name or @username',
+            hintText: tr('Search learners by name or @username'),
             prefixIcon: const Icon(Icons.search_rounded),
             suffixIcon: _search.text.isEmpty ? null : IconButton(icon: const Icon(Icons.close_rounded),
                 onPressed: () { _search.clear(); setState(() => _found = null); }),
@@ -205,7 +207,7 @@ class _Row extends StatelessWidget {
             if (p['pro'] == true) ...[const SizedBox(width: 4), const ProTick(size: 16)],
             if (p['bot'] == true) ...[
               const SizedBox(width: 6),
-              Text('Mockfy bot', style: TextStyle(fontSize: 11, color: Theme.of(context).hintColor)),
+              Text(tr('Mockfy bot'), style: TextStyle(fontSize: 11, color: Theme.of(context).hintColor)),
             ],
           ]),
           subtitle: p['streak'] != null ? Text('🔥 ${p['streak']}') : null,

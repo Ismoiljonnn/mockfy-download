@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../i18n.dart';
+
 import '../api.dart';
 import '../notify.dart';
 import '../prefs.dart';
@@ -21,7 +23,7 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: Text(tr('Settings'))),
       body: Loader<Map<String, dynamic>>(
         load: () async {
           final r = await Future.wait([Api.I.get('/api/app/me'), Api.I.get('/api/app/profile/$username')]);
@@ -63,15 +65,15 @@ class _BodyState extends State<_Body> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('Name and username'),
+        title: Text(tr('Name and username')),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: name, decoration: const InputDecoration(labelText: 'Name')),
+          TextField(controller: name, decoration: InputDecoration(labelText: tr('Name'))),
           const SizedBox(height: 10),
-          TextField(controller: user, decoration: const InputDecoration(labelText: 'Username', prefixText: '@')),
+          TextField(controller: user, decoration: InputDecoration(labelText: tr('Username'), prefixText: '@')),
         ]),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Save')),
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancel'))),
+          TextButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Save'))),
         ],
       ),
     );
@@ -97,7 +99,7 @@ class _BodyState extends State<_Body> {
     if (code == null) return;
     try {
       await Api.I.post('/api/lang', {'lang': code});
-      if (mounted) toast(context, 'Language saved: ${_langs[code]}. Lessons and messages from Mockfy use it.');
+      await I18n.I.set(code);                         // the whole app redraws in the new language
     } on ApiError catch (e) {
       if (mounted) toast(context, e.message);
     }
@@ -120,7 +122,7 @@ class _BodyState extends State<_Body> {
         padding: const EdgeInsets.only(top: 18),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Padding(padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
-              child: Text(title.toUpperCase(), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: .6, color: Theme.of(context).hintColor))),
+              child: Text(tr(title).toUpperCase(), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: .6, color: Theme.of(context).hintColor))),
           Card(child: Column(children: children)),
         ]),
       );
@@ -137,7 +139,7 @@ class _BodyState extends State<_Body> {
           trailing: const Icon(Icons.edit_rounded, size: 20),
           onTap: _editAccount,
         ),
-        ListTile(leading: const Icon(Icons.translate_rounded), title: const Text('Language'), trailing: const Icon(Icons.chevron_right_rounded), onTap: _language),
+        ListTile(leading: const Icon(Icons.translate_rounded), title: Text(tr('Language')), trailing: const Icon(Icons.chevron_right_rounded), onTap: _language),
       ]),
       _section('Workspace', [
         for (final w in (me['workspaces'] as List? ?? []).cast<Map>().where((w) => w['kind'] != 'learner'))
@@ -147,7 +149,7 @@ class _BodyState extends State<_Body> {
               color: w['active'] == true ? C.accent : null,
             ),
             title: Text('${w['title']}', style: TextStyle(fontWeight: w['active'] == true ? FontWeight.w700 : FontWeight.w500)),
-            subtitle: Text(w['active'] == true ? 'In use' : w['have'] == true ? 'Tap to switch' : 'Add this workspace'),
+            subtitle: Text(w['active'] == true ? 'In use' : w['have'] == true ? tr('Tap to switch') : tr('Add this workspace')),
             trailing: w['active'] == true
                 ? const Icon(Icons.check_circle_rounded, color: C.accent)
                 : const Icon(Icons.chevron_right_rounded, size: 20),
@@ -162,11 +164,11 @@ class _BodyState extends State<_Body> {
             child: Row(children: [
               const Icon(Icons.contrast_rounded),
               const SizedBox(width: 16),
-              const Expanded(child: Text('Theme')),
+              Expanded(child: Text(tr('Theme'))),
               SegmentedButton<ThemeMode>(
                 showSelectedIcon: false,
-                segments: const [
-                  ButtonSegment(value: ThemeMode.system, label: Text('Auto')),
+                segments: [
+                  ButtonSegment(value: ThemeMode.system, label: Text(tr('Auto'))),
                   ButtonSegment(value: ThemeMode.light, icon: Icon(Icons.light_mode_rounded, size: 18)),
                   ButtonSegment(value: ThemeMode.dark, icon: Icon(Icons.dark_mode_rounded, size: 18)),
                 ],
@@ -180,8 +182,8 @@ class _BodyState extends State<_Body> {
           valueListenable: Prefs.I.sound,
           builder: (context, on, _) => SwitchListTile(
             secondary: const Icon(Icons.volume_up_rounded),
-            title: const Text('Sound effects'),
-            subtitle: const Text('In Daily English and the games'),
+            title: Text(tr('Sound effects')),
+            subtitle: Text(tr('In Daily English and the games')),
             value: on,
             onChanged: Prefs.I.setSound,
           ),
@@ -190,7 +192,7 @@ class _BodyState extends State<_Body> {
           valueListenable: Prefs.I.haptics,
           builder: (context, on, _) => SwitchListTile(
             secondary: const Icon(Icons.vibration_rounded),
-            title: const Text('Vibration'),
+            title: Text(tr('Vibration')),
             value: on,
             onChanged: Prefs.I.setHaptics,
           ),
@@ -200,7 +202,7 @@ class _BodyState extends State<_Body> {
       _section('Privacy', [
         ListTile(
           leading: const Icon(Icons.lock_outline_rounded),
-          title: const Text('Who can open my finished tests'),
+          title: Text(tr('Who can open my finished tests')),
           trailing: DropdownButton<String>(
             value: _visibility.containsKey(_visible) ? _visible : 'nobody',
             underline: const SizedBox(),
@@ -210,7 +212,7 @@ class _BodyState extends State<_Body> {
         ),
         SwitchListTile(
           secondary: const Icon(Icons.grid_view_rounded),
-          title: const Text('Show my activity on my profile'),
+          title: Text(tr('Show my activity on my profile')),
           value: _shareActivity,
           onChanged: (v) { setState(() => _shareActivity = v); _privacy('share_activity', v); },
         ),
@@ -218,26 +220,26 @@ class _BodyState extends State<_Body> {
       _section('Plan', [
         ListTile(
           leading: me['isPro'] == true ? const ProTick(size: 26) : const Icon(Icons.workspace_premium_outlined),
-          title: Text(me['isPro'] == true ? 'Mockfy Pro' : 'Free'),
-          subtitle: Text(me['isPro'] == true ? 'Manage your plan and payments' : 'See what Pro gives'),
+          title: Text(me['isPro'] == true ? 'Mockfy Pro' : tr('Free')),
+          subtitle: Text(me['isPro'] == true ? 'Manage your plan and payments' : tr('See what Pro gives')),
           trailing: const Icon(Icons.chevron_right_rounded),
           onTap: () => me['isPro'] == true ? openWeb('/settings') : showProSheet(context, who: '', isMe: false, viewerPro: false),
         ),
       ]),
       _section('More', [
-        ListTile(leading: const Icon(Icons.help_outline_rounded), title: const Text('Help'), trailing: const Icon(Icons.open_in_new_rounded, size: 18), onTap: () => openWeb('/docs')),
-        ListTile(leading: const Icon(Icons.description_outlined), title: const Text('Terms and privacy'), trailing: const Icon(Icons.open_in_new_rounded, size: 18), onTap: () => openWeb('/privacy')),
+        ListTile(leading: const Icon(Icons.help_outline_rounded), title: Text(tr('Help')), trailing: const Icon(Icons.open_in_new_rounded, size: 18), onTap: () => openWeb('/docs')),
+        ListTile(leading: const Icon(Icons.description_outlined), title: Text(tr('Terms and privacy')), trailing: const Icon(Icons.open_in_new_rounded, size: 18), onTap: () => openWeb('/privacy')),
         ListTile(
           leading: const Icon(Icons.logout_rounded, color: C.red),
-          title: const Text('Sign out', style: TextStyle(color: C.red)),
+          title: Text(tr('Sign out'), style: TextStyle(color: C.red)),
           onTap: () async {
             final ok = await showDialog<bool>(
               context: context,
               builder: (c) => AlertDialog(
-                title: const Text('Sign out of Mockfy?'),
+                title: Text(tr('Sign out of Mockfy?')),
                 actions: [
-                  TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-                  TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Sign out')),
+                  TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancel'))),
+                  TextButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Sign out'))),
                 ],
               ),
             );
@@ -272,15 +274,15 @@ class _ReminderState extends State<_Reminder> {
   Widget build(BuildContext context) => Column(children: [
         SwitchListTile(
           secondary: const Icon(Icons.alarm_rounded),
-          title: const Text('Daily reminder'),
-          subtitle: const Text('A nudge to practise, so your streak keeps going'),
+          title: Text(tr('Daily reminder')),
+          subtitle: Text(tr('A nudge to practise, so your streak keeps going')),
           value: _on,
           onChanged: (v) { setState(() => _on = v); _save(); },
         ),
         if (_on)
           ListTile(
             leading: const Icon(Icons.schedule_rounded),
-            title: const Text('Time'),
+            title: Text(tr('Time')),
             trailing: Text(_at.format(context), style: const TextStyle(fontWeight: FontWeight.w700)),
             onTap: () async {
               final t = await showTimePicker(context: context, initialTime: _at);
@@ -289,10 +291,10 @@ class _ReminderState extends State<_Reminder> {
               _save();
             },
           ),
-        const ListTile(
+        ListTile(
           leading: Icon(Icons.notifications_active_outlined),
-          title: Text('News from Mockfy'),
-          subtitle: Text('Results, homework and Mock Day news arrive as notifications when you open the app'),
+          title: Text(tr('News from Mockfy')),
+          subtitle: Text(tr('Results, homework and Mock Day news arrive as notifications when you open the app')),
         ),
       ]);
 }

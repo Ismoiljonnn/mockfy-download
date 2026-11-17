@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../i18n.dart';
+
 import '../desktop_shell.dart';
 import '../api.dart';
 import '../theme.dart';
@@ -25,7 +27,7 @@ class ShopScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: rootBar(context, AppBar(title: const Text('Shop'))),
+      appBar: rootBar(context, AppBar(title: Text(tr('Shop')))),
       body: Loader<Map<String, dynamic>>(
         load: () async => (await Api.I.get('/api/shop'))['shop'] as Map<String, dynamic>,
         onSignedOut: onSignedOut,
@@ -41,7 +43,7 @@ class ShopScreen extends StatelessWidget {
                   const SizedBox(width: 12),
                   Text('${s['balance']}', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800)),
                   const SizedBox(width: 6),
-                  Text('crystals', style: TextStyle(color: Theme.of(context).hintColor)),
+                  Text(tr('crystals'), style: TextStyle(color: Theme.of(context).hintColor)),
                 ]),
               ),
             ),
@@ -49,10 +51,10 @@ class ShopScreen extends StatelessWidget {
               const SizedBox(height: 12),
               Card(
                 color: C.accent.withValues(alpha: .12),
-                child: const ListTile(
+                child: ListTile(
                   leading: Icon(Icons.local_fire_department_rounded, color: C.accent),
-                  title: Text('Your streak can still be brought back'),
-                  subtitle: Text('Use a Streak restore below.'),
+                  title: Text(tr('Your streak can still be brought back')),
+                  subtitle: Text(tr('Use a Streak restore below.')),
                 ),
               ),
             ],
@@ -87,8 +89,8 @@ class _ItemCardState extends State<_ItemCard> {
           title: Text('Buy ${it['name']}?'),
           content: Text('${it['price']} crystals. ${it['about']}'),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-            FilledButton(style: FilledButton.styleFrom(minimumSize: const Size(88, 44)), onPressed: () => Navigator.pop(c, true), child: const Text('Buy')),
+            TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancel'))),
+            FilledButton(style: FilledButton.styleFrom(minimumSize: const Size(88, 44)), onPressed: () => Navigator.pop(c, true), child: Text(tr('Buy'))),
           ],
         ),
       );
@@ -144,7 +146,7 @@ class _ItemCardState extends State<_ItemCard> {
                     FilledButton(
                       style: FilledButton.styleFrom(minimumSize: const Size(0, 38), backgroundColor: C.green),
                       onPressed: _busy ? null : () => _do('use'),
-                      child: const Text('Use'),
+                      child: Text(tr('Use')),
                     ),
                     const SizedBox(width: 8),
                   ],
@@ -152,7 +154,7 @@ class _ItemCardState extends State<_ItemCard> {
                     style: OutlinedButton.styleFrom(minimumSize: const Size(0, 38)),
                     onPressed: _busy || full || widget.balance < price ? null : () => _do('buy'),
                     icon: const Icon(Icons.diamond_rounded, size: 16, color: Color(0xFF9B7BEA)),
-                    label: Text(full ? 'Full' : '$price'),
+                    label: Text(full ? tr('Full') : '$price'),
                   ),
                 ]),
               ]),

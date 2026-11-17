@@ -25,6 +25,7 @@ dependencies:
   workmanager: '>=0.6.0'
   record: ^6.0.0
   flutter_svg: ^2.0.16
+  flutter_tts: ^4.2.0
 
 dev_dependencies:
   flutter_test:
@@ -40,6 +41,7 @@ flutter:
     - assets/hudi.png
     - assets/hudi/
     - assets/sfx/
+    - assets/i18n/
 
 flutter_launcher_icons:
   android: true

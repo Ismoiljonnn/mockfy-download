@@ -2,26 +2,124 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../i18n.dart';
+
 import '../desktop_shell.dart';
 import '../api.dart';
+import '../prefs.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import 'placement.dart';
 import 'stage.dart';
 
-/// The Daily English map: zones, each with its stages (open, done with stars, locked).
-class DailyScreen extends StatelessWidget {
+/// The Daily English map: zones, each with its stages (open, done with stars, locked); the chests on
+/// the path and the level check are in the bar.
+class DailyScreen extends StatefulWidget {
   const DailyScreen({super.key, required this.onSignedOut});
   final VoidCallback onSignedOut;
+  @override
+  State<DailyScreen> createState() => _DailyScreenState();
+}
+
+class _DailyScreenState extends State<DailyScreen> {
+  Key _k = UniqueKey();
+  List<Map> _chests = const [];
+  bool _placed = true;
+
+  Future<Map<String, dynamic>> _load() async {
+    final r = await Api.I.get('/api/daily');
+    final map = (r['map'] as Map).cast<String, dynamic>();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() { _chests = ((map['chests'] as List?) ?? []).cast<Map>(); _placed = r['placed'] != false; });
+    });
+    return map;
+  }
+
+  void _again() => setState(() => _k = UniqueKey());
+
+  Future<void> _levelCheck() async {
+    final done = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => const PlacementScreen()));
+    if (done == true) _again();
+  }
+
+  Future<void> _openChest(int n) async {
+    try {
+      final r = await Api.I.post('/api/daily/chest/$n');
+      final c = (r['chest'] as Map?) ?? {};
+      Sfx.play('win');
+      if (!mounted) return;
+      final item = c['item'] as Map?;
+      await showDialog<void>(
+        context: context,
+        builder: (d) => AlertDialog(
+          icon: const Text('🎁', style: TextStyle(fontSize: 48)),
+          title: Text(tr('Chest opened!')),
+          content: Text(item != null ? 'You got ${item['name']}.' : '+${c['points'] ?? 0} points', textAlign: TextAlign.center),
+          actions: [TextButton(onPressed: () => Navigator.pop(d), child: Text(tr('Great')))],
+        ),
+      );
+      _again();
+    } on ApiError catch (e) {
+      if (mounted) toast(context, e.message);
+    }
+  }
+
+  void _showChests() {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheet) => SafeArea(
+        child: ListView(shrinkWrap: true, padding: const EdgeInsets.fromLTRB(16, 0, 16, 16), children: [
+          Text(tr('Chests on the path'), style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 4),
+          Text(tr('One after every few stages. Finish the stage before it to open it.'), style: TextStyle(color: Theme.of(context).hintColor)),
+          const SizedBox(height: 8),
+          for (final c in _chests)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Text(c['status'] == 'opened' ? '📭' : c['status'] == 'ready' ? '🎁' : '🔒', style: const TextStyle(fontSize: 28)),
+              title: Text('After stage ${c['n']}'),
+              subtitle: Text(c['status'] == 'opened'
+                  ? (c['item'] != null ? 'Opened' : 'Opened')
+                  : c['status'] == 'ready' ? 'Ready to open' : 'Locked'),
+              trailing: c['status'] == 'ready'
+                  ? FilledButton(onPressed: () { Navigator.pop(sheet); _openChest((c['n'] as num).toInt()); }, child: Text(tr('Open')))
+                  : null,
+            ),
+        ]),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final ready = _chests.where((c) => c['status'] == 'ready').length;
     return Scaffold(
-      appBar: rootBar(context, AppBar(leading: menuButton(context), title: const Text('Daily English'))),
-      body: Loader<Map<String, dynamic>>(
-        load: () async => (await Api.I.get('/api/daily'))['map'] as Map<String, dynamic>,
-        onSignedOut: onSignedOut,
-        build: (context, map, reload) => _Map(map: map, reload: reload),
-      ),
+      appBar: rootBar(context, AppBar(leading: menuButton(context), title: Text(tr('Daily English')), actions: [
+        if (_chests.isNotEmpty)
+          IconButton(
+            tooltip: tr('Chests'),
+            onPressed: _showChests,
+            icon: Badge(isLabelVisible: ready > 0, label: Text('$ready'), child: const Icon(Icons.card_giftcard_rounded)),
+          ),
+        IconButton(tooltip: tr('Level check'), onPressed: _levelCheck, icon: const Icon(Icons.speed_rounded)),
+      ])),
+      body: Column(children: [
+        if (!_placed)
+          MaterialBanner(
+            leading: const Icon(Icons.speed_rounded, color: C.accent),
+            content: Text(tr('Take the 3-minute level check so the stages fit your level.')),
+            actions: [TextButton(onPressed: _levelCheck, child: Text(tr('Start')))],
+          ),
+        Expanded(
+          child: Loader<Map<String, dynamic>>(
+            key: _k,
+            load: _load,
+            onSignedOut: widget.onSignedOut,
+            build: (context, map, reload) => _Map(map: map, reload: reload),
+          ),
+        ),
+      ]),
     );
   }
 }
@@ -198,7 +296,7 @@ class _MapState extends State<_Map> {
                   heroTag: 'daily-here',
                   backgroundColor: C.green,
                   foregroundColor: Colors.white,
-                  tooltip: 'Back to my stage',
+                  tooltip: tr('Back to my stage'),
                   onPressed: _goHere,
                   child: Icon(_away < 0 ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded),
                 ),
@@ -396,7 +494,7 @@ class _Stop extends StatelessWidget {
                   decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(14),
                       boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4))]),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                    Text('START HERE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: .6, color: colour)),
+                    Text(tr('START HERE'), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: .6, color: colour)),
                     Text('${stage['title']}', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800)),
                   ]),
                 ),

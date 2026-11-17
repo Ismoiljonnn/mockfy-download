@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../i18n.dart';
+
 import '../desktop_shell.dart';
 import '../api.dart';
 import '../theme.dart';
@@ -28,7 +30,7 @@ class TestsScreen extends StatelessWidget {
       child: Scaffold(
         appBar: rootBar(context, AppBar(
           leading: menuButton(context),
-          title: const Text('Tests'),
+          title: Text(tr('Tests')),
           bottom: const TabBar(tabs: [Tab(text: 'Full mock'), Tab(text: 'Section practice')]),
         )),
         body: Loader<Map<String, dynamic>>(
@@ -76,10 +78,10 @@ class _ListState extends State<_List> {
       if (widget.full)
         Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: Text('All four sections in one sitting, with real timing, like the exam day.',
+          child: Text(tr('All four sections in one sitting, with real timing, like the exam day.'),
               style: TextStyle(color: Theme.of(context).hintColor)),
         ),
-      if (shown.isEmpty) const Padding(padding: EdgeInsets.all(32), child: Center(child: Text('No tests found.'))),
+      if (shown.isEmpty) Padding(padding: EdgeInsets.all(32), child: Center(child: Text(tr('No tests found.')))),
       for (final t in shown) _TestCard(test: t.$2.cast<String, dynamic>(), number: t.$1, full: widget.full, reload: widget.reload),
     ]);
   }
@@ -123,7 +125,7 @@ class _TestCard extends StatelessWidget {
                 decoration: BoxDecoration(color: C.accent.withValues(alpha: .15), borderRadius: BorderRadius.circular(10)),
                 child: Text('$number', style: const TextStyle(fontWeight: FontWeight.w900, color: C.accent)),
               ),
-              Expanded(child: Text('${full ? 'Mock' : 'Test'} $number · ${test['title']}', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700))),
+              Expanded(child: Text('${full ? tr('Mock') : 'Test'} $number · ${test['title']}', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700))),
             ]),
             const SizedBox(height: 6),
             Wrap(spacing: 10, runSpacing: 6, children: [
@@ -141,7 +143,7 @@ class _TestCard extends StatelessWidget {
                 FilledButton(
                   style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
                   onPressed: () => _start(context, sc),
-                  child: Text(resume.containsKey(sc) ? 'Continue' : sc == 'full' ? 'Start full mock' : 'Start ${sc[0].toUpperCase()}${sc.substring(1)}'),
+                  child: Text(resume.containsKey(sc) ? 'Continue' : sc == 'full' ? tr('Start full mock') : 'Start ${sc[0].toUpperCase()}${sc.substring(1)}'),
                 ),
             ]),
           ]),

@@ -4,6 +4,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../i18n.dart';
+
 import '../desktop_shell.dart';
 import '../api.dart';
 import '../notify.dart';
@@ -16,6 +18,7 @@ import 'leaderboard.dart';
 import 'mockday.dart';
 import 'profile.dart';
 import 'settings.dart';
+import 'shadowing.dart';
 import 'shop.dart';
 
 class MoreScreen extends StatelessWidget {
@@ -40,7 +43,7 @@ class MoreScreen extends StatelessWidget {
         );
     final user = '${me['username']}';
     return Scaffold(
-      appBar: AppBar(leading: menuButton(context), title: const Text('Profile')),
+      appBar: AppBar(leading: menuButton(context), title: Text(tr('Profile'))),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 32), children: [
         Card(
           child: ListTile(
@@ -84,19 +87,20 @@ class FeaturesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final on = ((me['features'] as Map?) ?? {}).cast<String, dynamic>();
     final items = <(IconData, Color, String, String, Widget Function())>[
-      (Icons.emoji_events_rounded, C.gold, 'Leaderboard', 'This week and all time', () => LeaderboardScreen(onSignedOut: onSignedOut)),
-      (Icons.sports_esports_rounded, C.accent, 'Games', 'Seven word games', () => const GamesScreen()),
-      (Icons.style_rounded, C.green, 'My words', 'Words you saved', () => const WordsBoardScreen()),
-      (Icons.event_rounded, const Color(0xFF9B7BEA), 'Mock Day', 'Test day with everyone', () => const MockDayScreen()),
-      (Icons.history_rounded, C.blue, 'My results', 'Bands and answers', () => const HistoryScreen()),
-      (Icons.lightbulb_rounded, C.gold, 'Recommendations', 'What to work on next', () => const RecommendationsScreen()),
-      (Icons.storefront_rounded, C.accent, 'Shop', 'Freezes, boosts, Pro passes', () => ShopScreen(onSignedOut: onSignedOut)),
-      if (on['friends'] == true) (Icons.people_alt_rounded, C.green, 'Friends', 'Your friends', () => FriendsScreen(username: '${me['username']}')),
+      (Icons.emoji_events_rounded, C.gold, tr('Leaderboard'), tr('This week and all time'), () => LeaderboardScreen(onSignedOut: onSignedOut)),
+      (Icons.sports_esports_rounded, C.accent, tr('Games'), tr('Seven word games'), () => const GamesScreen()),
+      (Icons.style_rounded, C.green, tr('My words'), tr('Words you saved'), () => const WordsBoardScreen()),
+      (Icons.record_voice_over_rounded, C.blue, tr('Shadowing'), tr('Say it after the speaker'), () => const ShadowingScreen()),
+      (Icons.event_rounded, const Color(0xFF9B7BEA), tr('Mock Day'), tr('Test day with everyone'), () => const MockDayScreen()),
+      (Icons.history_rounded, C.blue, tr('My results'), tr('Bands and answers'), () => const HistoryScreen()),
+      (Icons.lightbulb_rounded, C.gold, tr('Recommendations'), tr('What to work on next'), () => const RecommendationsScreen()),
+      (Icons.storefront_rounded, C.accent, tr('Shop'), tr('Freezes, boosts, Pro passes'), () => ShopScreen(onSignedOut: onSignedOut)),
+      if (on['friends'] == true) (Icons.people_alt_rounded, C.green, tr('Friends'), tr('Your friends'), () => FriendsScreen(username: '${me['username']}')),
     ];
     final dark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      appBar: AppBar(leading: menuButton(context), title: const Text('More'), actions: [
-        IconButton(tooltip: 'Search', icon: const Icon(Icons.search_rounded),
+      appBar: AppBar(leading: menuButton(context), title: Text(tr('More')), actions: [
+        IconButton(tooltip: tr('Search'), icon: const Icon(Icons.search_rounded),
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen()))),
       ]),
       body: GridView.builder(
@@ -150,11 +154,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Notifications')),
+      appBar: AppBar(title: Text(tr('Notifications'))),
       body: Loader<List<Map>>(
         load: () async => ((await Api.I.get('/api/notifications'))['items'] as List).cast<Map>(),
         build: (context, items, reload) => items.isEmpty
-            ? ListView(children: const [Padding(padding: EdgeInsets.all(40), child: Center(child: Text('Nothing new yet.')))])
+            ? ListView(children: [Padding(padding: EdgeInsets.all(40), child: Center(child: Text(tr('Nothing new yet.'))))])
             : ListView.separated(
                 padding: const EdgeInsets.all(16),
                 itemCount: items.length,
@@ -186,11 +190,11 @@ class HistoryScreen extends StatelessWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('Continue this test?'),
-        content: const Text('The clock starts running again where you left it.'),
+        title: Text(tr('Continue this test?')),
+        content: Text(tr('The clock starts running again where you left it.')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Not now')),
-          TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Continue')),
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Not now'))),
+          TextButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Continue'))),
         ],
       ),
     );
@@ -202,7 +206,7 @@ class HistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: rootBar(context, AppBar(title: const Text('My results'))),
+      appBar: rootBar(context, AppBar(title: Text(tr('My results')))),
       body: Loader<Map<String, dynamic>>(
         load: () => Api.I.get('/api/history'),
         build: (context, d, reload) {
@@ -210,13 +214,13 @@ class HistoryScreen extends StatelessWidget {
           final open = all.where((a) => a['status'] == 'in_progress').toList();
           final done = all.where((a) => a['status'] == 'completed').toList();
           if (all.isEmpty) {
-            return ListView(children: const [Padding(padding: EdgeInsets.all(40), child: Center(child: Text('No finished tests yet.')))]);
+            return ListView(children: [Padding(padding: EdgeInsets.all(40), child: Center(child: Text(tr('No finished tests yet.'))))]);
           }
           String scope(Map a) => a['scope'] == 'full' ? 'Full mock' : '${a['scope']}'.isEmpty ? '' : '${a['scope']}'[0].toUpperCase() + '${a['scope']}'.substring(1);
           String day(Map a) => '${a['completedAt'] ?? a['startedAt'] ?? ''}'.split(' ').first.split('T').first;
           return ListView(padding: const EdgeInsets.all(16), children: [
             if (open.isNotEmpty) ...[
-              const Padding(padding: EdgeInsets.fromLTRB(4, 0, 4, 8), child: Text('Not finished', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800))),
+              Padding(padding: EdgeInsets.fromLTRB(4, 0, 4, 8), child: Text(tr('Not finished'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800))),
               for (final a in open)
                 Card(
                   margin: const EdgeInsets.only(bottom: 8),
@@ -226,13 +230,13 @@ class HistoryScreen extends StatelessWidget {
                     trailing: FilledButton(
                       style: FilledButton.styleFrom(minimumSize: const Size(0, 38)),
                       onPressed: () => _continue(context, a),
-                      child: const Text('Continue'),
+                      child: Text(tr('Continue')),
                     ),
                   ),
                 ),
               const SizedBox(height: 12),
             ],
-            if (done.isNotEmpty) const Padding(padding: EdgeInsets.fromLTRB(4, 0, 4, 8), child: Text('Finished', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800))),
+            if (done.isNotEmpty) Padding(padding: EdgeInsets.fromLTRB(4, 0, 4, 8), child: Text(tr('Finished'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800))),
             for (final a in done)
               Card(
                 margin: const EdgeInsets.only(bottom: 8),
@@ -261,12 +265,12 @@ class RecommendationsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: rootBar(context, AppBar(title: const Text('Recommendations'))),
+      appBar: rootBar(context, AppBar(title: Text(tr('Recommendations')))),
       body: Loader<List<Map>>(
         load: () async => ((await Api.I.get('/api/recommendations'))['recommendations'] as List).cast<Map>(),
         build: (context, items, reload) => items.isEmpty
-            ? ListView(children: const [Padding(padding: EdgeInsets.all(40),
-                child: Center(child: Text('Finish a test and Mockfy suggests what to work on next.', textAlign: TextAlign.center)))])
+            ? ListView(children: [Padding(padding: EdgeInsets.all(40),
+                child: Center(child: Text(tr('Finish a test and Mockfy suggests what to work on next.'), textAlign: TextAlign.center)))])
             : ListView(padding: const EdgeInsets.all(16), children: [
                 for (final r in items)
                   Card(
@@ -290,7 +294,7 @@ class FriendsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Friends')),
+      appBar: AppBar(title: Text(tr('Friends'))),
       body: Loader<Map<String, dynamic>>(
         load: () async => (((await Api.I.get('/api/app/profile/$username'))['profile'] as Map)['friends'] as Map?)?.cast<String, dynamic>() ?? {},
         build: (context, f, reload) {
@@ -316,7 +320,7 @@ class FriendsScreen extends StatelessWidget {
           }
           return ListView(padding: const EdgeInsets.all(16), children: [
             if (incoming.isNotEmpty) ...[
-              const Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Requests', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800))),
+              Padding(padding: EdgeInsets.only(bottom: 8), child: Text(tr('Requests'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800))),
               for (final p in incoming)
                 person(p, trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                   IconButton(icon: const Icon(Icons.check_circle_rounded, color: C.green), onPressed: () => act(p, 'accept')),
@@ -326,8 +330,8 @@ class FriendsScreen extends StatelessWidget {
             ],
             Text('Friends (${friends.length})', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
-            if (friends.isEmpty) const Padding(padding: EdgeInsets.all(24),
-                child: Text('Find learners on the leaderboard or with search, open their profile and add them.', textAlign: TextAlign.center)),
+            if (friends.isEmpty) Padding(padding: EdgeInsets.all(24),
+                child: Text(tr('Find learners on the leaderboard or with search, open their profile and add them.'), textAlign: TextAlign.center)),
             for (final p in friends) person(p),
           ]);
         },
@@ -386,7 +390,7 @@ class _SearchScreenState extends State<SearchScreen> {
           autofocus: true,
           onChanged: _search,
           textInputAction: TextInputAction.search,
-          decoration: const InputDecoration(hintText: 'Search tests, lessons, learners, help', border: InputBorder.none),
+          decoration: InputDecoration(hintText: tr('Search tests, lessons, learners, help'), border: InputBorder.none),
         ),
         bottom: _busy ? const PreferredSize(preferredSize: Size.fromHeight(2), child: LinearProgressIndicator(minHeight: 2)) : null,
       ),
@@ -444,7 +448,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     setState(() => _busy = true);
     try {
       await Api.I.post('/api/feedback', {'kind': _kind, 'message': _msg.text.trim(), 'page': 'android-app'});
-      if (mounted) { toast(context, 'Thank you! The Mockfy team reads every message.'); Navigator.pop(context); }
+      if (mounted) { toast(context, tr('Thank you! The Mockfy team reads every message.')); Navigator.pop(context); }
     } on ApiError catch (e) {
       if (mounted) toast(context, e.message);
     } finally {
@@ -454,7 +458,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Send feedback')),
+        appBar: AppBar(title: Text(tr('Send feedback'))),
         body: ListView(padding: const EdgeInsets.all(16), children: [
           Wrap(spacing: 8, children: [
             for (final k in const [('idea', 'Idea'), ('bug', 'Something is wrong'), ('content', 'A test or question'), ('other', 'Other')])
@@ -466,11 +470,11 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
             minLines: 6,
             maxLines: 12,
             onChanged: (_) => setState(() {}),
-            decoration: InputDecoration(hintText: 'Tell us what you think', filled: true,
+            decoration: InputDecoration(hintText: tr('Tell us what you think'), filled: true,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none)),
           ),
           const SizedBox(height: 16),
-          FilledButton(onPressed: _busy || _msg.text.trim().length < 5 ? null : _send, child: const Text('Send')),
+          FilledButton(onPressed: _busy || _msg.text.trim().length < 5 ? null : _send, child: Text(tr('Send'))),
         ]),
       );
 }

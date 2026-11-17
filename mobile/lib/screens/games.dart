@@ -4,6 +4,8 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+
+import '../i18n.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../desktop_shell.dart';
@@ -47,7 +49,7 @@ class _GamesScreenState extends State<GamesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: rootBar(context, AppBar(title: const Text('Games'))),
+      appBar: rootBar(context, AppBar(title: Text(tr('Games')))),
       body: Loader<Map<String, dynamic>>(
         key: _k,
         load: () => Api.I.get('/api/app/games'),
@@ -66,7 +68,7 @@ class _GamesScreenState extends State<GamesScreen> {
                   Row(children: [
                     const Icon(Icons.flag_circle_rounded, color: C.gold, size: 30),
                     const SizedBox(width: 10),
-                    const Expanded(child: Text("Today's quest", style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800))),
+                    Expanded(child: Text(tr("Today's quest"), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800))),
                     Text('+${quest['reward'] ?? 30} 💎', style: const TextStyle(fontWeight: FontWeight.w800)),
                   ]),
                   const SizedBox(height: 6),
@@ -75,9 +77,9 @@ class _GamesScreenState extends State<GamesScreen> {
                   LinearProgressIndicator(value: of == 0 ? 0 : done / of, color: C.gold, minHeight: 8, borderRadius: BorderRadius.circular(5)),
                   const SizedBox(height: 10),
                   if (quest['claimed'] == true)
-                    const Text('Done for today. Come back tomorrow!', style: TextStyle(fontWeight: FontWeight.w700))
+                    Text(tr('Done for today. Come back tomorrow!'), style: TextStyle(fontWeight: FontWeight.w700))
                   else if (ready)
-                    FilledButton(onPressed: _claim, child: const Text('Claim the reward'))
+                    FilledButton(onPressed: _claim, child: Text(tr('Claim the reward')))
                   else
                     Text('$done of $of games', style: const TextStyle(fontWeight: FontWeight.w700)),
                 ]),
@@ -88,8 +90,8 @@ class _GamesScreenState extends State<GamesScreen> {
               color: C.green.withValues(alpha: .12),
               child: ListTile(
                 leading: const Icon(Icons.style_rounded, color: C.green),
-                title: const Text('My words', style: TextStyle(fontWeight: FontWeight.w700)),
-                subtitle: const Text('Review the words you saved, a few each day'),
+                title: Text(tr('My words'), style: TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: Text(tr('Review the words you saved, a few each day')),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WordsBoardScreen())),
               ),
@@ -113,7 +115,7 @@ class _GamesScreenState extends State<GamesScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(color: C.accent, borderRadius: BorderRadius.circular(6)),
-                          child: const Text('TODAY', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
+                          child: Text(tr('TODAY'), style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
                         ),
                       ],
                     ]),
@@ -135,7 +137,95 @@ class _GamesScreenState extends State<GamesScreen> {
   }
 }
 
-Widget _gameFor(String id, String title) => switch (id) {
+const _rules = {
+  'rush': 'Pick the word for each meaning. As many as you can in 60 seconds.',
+  'duel': 'Race a Mockfy bot to ten right answers.',
+  'scramble': 'The letters are mixed up. Read the meaning and put the word together. Spelling counts in IELTS Listening and Writing.',
+  'collocations': 'Join the words that go together, round after round.',
+  'ladder': 'Climb from a plain word to a strong one, one synonym at a time.',
+  'spell': 'Hear the word, then spell it. Spelling counts in IELTS Listening.',
+};
+
+Widget _gameFor(String id, String title) {
+  if (id == 'match') _walletAtStart = _wallet();
+  return id == 'match' ? _game(id, title) : GameLobby(game: id, title: title);
+}
+
+/// Before a game: the rules on top, this week's leaderboard in the middle (your own row marked), Start.
+class GameLobby extends StatelessWidget {
+  const GameLobby({super.key, required this.game, required this.title});
+  final String game;
+  final String title;
+  @override
+  Widget build(BuildContext context) {
+    final hint = Theme.of(context).hintColor;
+    return Scaffold(
+      appBar: AppBar(title: Text(title)),
+      body: Column(children: [
+        Expanded(
+          child: ListView(padding: const EdgeInsets.all(20), children: [
+            const Center(child: Hudi(mood: 0, size: 84)),
+            const SizedBox(height: 12),
+            Text(tr(_rules[game] ?? ''), textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, height: 1.4)),
+            const SizedBox(height: 20),
+            Text(tr('Leaderboard · this week'), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 8),
+            FutureBuilder<Map<String, dynamic>>(
+              future: Api.I.get('/api/games/top', {'game': game}),
+              builder: (context, snap) {
+                if (!snap.hasData) {
+                  return snap.hasError ? const SizedBox.shrink() : const Padding(padding: EdgeInsets.all(20), child: Center(child: CircularProgressIndicator()));
+                }
+                final rows = ((snap.data!['top'] as List?) ?? []).cast<Map>();
+                if (rows.isEmpty) return Text(tr('Nobody has played this week yet. Be the first!'), style: TextStyle(color: hint));
+                return Card(
+                  child: Column(children: [
+                    for (var i = 0; i < rows.length; i++)
+                      Container(
+                        color: rows[i]['me'] == true ? C.accent.withValues(alpha: .12) : null,
+                        child: ListTile(
+                          dense: true,
+                          leading: SizedBox(width: 28, child: Text('${i + 1}', textAlign: TextAlign.center,
+                              style: TextStyle(fontWeight: FontWeight.w800, color: i < 3 ? C.gold : hint))),
+                          title: Text('${rows[i]['name']}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
+                          subtitle: rows[i]['username'] != null ? Text('@${rows[i]['username']}') : null,
+                          trailing: Text('${rows[i]['score']}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                        ),
+                      ),
+                    if (snap.data!['best'] != null)
+                      Padding(padding: const EdgeInsets.all(12), child: Text(tr('Your best: {n}', {'n': snap.data!['best']}), style: TextStyle(color: hint))),
+                  ]),
+                );
+              },
+            ),
+          ]),
+        ),
+        SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () {
+                  _walletAtStart = _wallet();
+                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => _game(game, title)));
+                },
+                child: Text(tr('Start')),
+              ),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+/// The endless games end when you press Finish or leave: the score is saved either way, as on the website.
+Widget _finishButton(bool show, VoidCallback onFinish) =>
+    show ? TextButton(onPressed: onFinish, child: Text(tr('Finish'))) : const SizedBox.shrink();
+
+Widget _game(String id, String title) => switch (id) {
       'rush' => WordGame(game: 'rush', title: title, seconds: 60),
       'duel' => WordGame(game: 'duel', title: title, duel: true),
       'scramble' => ScrambleGame(title: title),
@@ -190,6 +280,19 @@ class _HudiState extends State<Hudi> with SingleTickerProviderStateMixin {
       );
 }
 
+// What the game earned: points and crystals before it started, compared with after it (combo rewards,
+// a won duel, the quest), shown on the game-over screen.
+Future<Map<String, num>> _wallet() async {
+  try {
+    final m = (await Api.I.get('/api/app/me'))['me'] as Map;
+    return {'points': (m['points'] as num?) ?? 0, 'crystals': (m['crystals'] as num?) ?? 0};
+  } on ApiError {
+    return const {};
+  }
+}
+
+Future<Map<String, num>> _walletAtStart = Future.value(const {});
+
 Future<Map<String, dynamic>?> _saveScore(String game, int score) async {
   try {
     return await Api.I.post('/api/games/score', {'game': game, 'score': score});
@@ -213,12 +316,49 @@ class _GameOver extends StatelessWidget {
             const SizedBox(height: 16),
             Text('$score', style: const TextStyle(fontSize: 56, fontWeight: FontWeight.w900, color: C.accent)),
             Text(line ?? 'points', style: TextStyle(color: Theme.of(context).hintColor, fontSize: 16)),
-            if (best != null) Padding(padding: const EdgeInsets.only(top: 6), child: Text('Your best: $best')),
+            if (best != null) Padding(padding: const EdgeInsets.only(top: 6), child: Text(tr('Your best: {n}', {'n': best}))),
+            const SizedBox(height: 16),
+            _Earned(key: ValueKey(score)),
             const SizedBox(height: 24),
-            FilledButton(onPressed: again, child: const Text('Play again')),
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Back to games')),
+            FilledButton(onPressed: () { _walletAtStart = _wallet(); again(); }, child: Text(tr('Play again'))),
+            TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('Back to games'))),
           ]),
         ),
+      );
+}
+
+/// "+12 points  +20 crystals": what this game gave (read a moment after it ends, once the server has paid it).
+class _Earned extends StatelessWidget {
+  const _Earned({super.key});
+  Future<Map<String, num>> _diff() async {
+    final before = await _walletAtStart;
+    await Future<void>.delayed(const Duration(milliseconds: 700));
+    final after = await _wallet();
+    if (before.isEmpty || after.isEmpty) return const {};
+    return {'points': after['points']! - before['points']!, 'crystals': after['crystals']! - before['crystals']!};
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<Map<String, num>>(
+        future: _diff(),
+        builder: (context, snap) {
+          final d = snap.data;
+          if (d == null || d.isEmpty) return const SizedBox(height: 40);
+          Widget pill(IconData icon, Color c, String text) => Container(
+                margin: const EdgeInsets.symmetric(horizontal: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(color: c.withValues(alpha: .14), borderRadius: BorderRadius.circular(20)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(icon, color: c, size: 20),
+                  const SizedBox(width: 6),
+                  Text(text, style: TextStyle(fontWeight: FontWeight.w800, color: c, fontSize: 16)),
+                ]),
+              );
+          return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            pill(Icons.star_rounded, C.gold, tr('+{n} points', {'n': d['points']!.round()})),
+            pill(Icons.diamond_rounded, const Color(0xFF9B7BEA), tr('+{n} crystals', {'n': d['crystals']!.round()})),
+          ]);
+        },
       );
 }
 
@@ -411,11 +551,20 @@ class _ScrambleGameState extends State<ScrambleGame> {
     _start();
   }
 
+  bool _more = false;
+  static bool _ok(Map m) => RegExp(r'^[a-zA-Z]{4,11}$').hasMatch('${m['word']}');
+
+  @override
+  void dispose() {
+    if (!_over && _score > 0) _saveScore('scramble', _score);   // leaving keeps the score
+    super.dispose();
+  }
+
   Future<void> _start() async {
     setState(() { _loading = true; _over = false; _i = 0; _score = 0; _best = null; });
     try {
-      final r = await Api.I.get('/api/games/words', {'n': 20});
-      _words = (r['items'] as List).cast<Map>().where((m) => RegExp(r'^[a-zA-Z]{3,10}$').hasMatch('${m['word']}')).take(10).toList();
+      final r = await Api.I.get('/api/games/words', {'n': 40});
+      _words = (r['items'] as List).cast<Map>().where(_ok).toList();
     } on ApiError catch (e) {
       if (mounted) toast(context, e.message);
     }
@@ -423,9 +572,27 @@ class _ScrambleGameState extends State<ScrambleGame> {
     if (mounted) setState(() => _loading = false);
   }
 
+  // endless: more words come before the list runs out
+  Future<void> _loadMore() async {
+    if (_more || _words.length - _i > 4) return;
+    _more = true;
+    try {
+      final r = await Api.I.get('/api/games/words', {'n': 40});
+      final have = _words.map((w) => '${w['word']}').toSet();
+      _words.addAll((r['items'] as List).cast<Map>().where((m) => _ok(m) && !have.contains('${m['word']}')));
+    } on ApiError { /* try again on the next word */ }
+    _more = false;
+    if (mounted) setState(() {});
+  }
+
   void _next({bool first = false}) {
     if (!first) _i++;
-    if (_i >= _words.length) { _finish(); return; }
+    _loadMore();
+    if (_i >= _words.length) {
+      if (_words.isEmpty) { _finish(); return; }
+      Future.delayed(const Duration(milliseconds: 400), () { if (mounted && !_over) { _i--; _next(); } });
+      return;
+    }
     final w = '${_words[_i]['word']}';
     _order = List.generate(w.length, (k) => k)..shuffle();
     if (_order.join() == List.generate(w.length, (k) => k).join() && w.length > 1) _order = _order.reversed.toList();
@@ -435,6 +602,7 @@ class _ScrambleGameState extends State<ScrambleGame> {
   }
 
   Future<void> _finish() async {
+    if (_over) return;
     setState(() => _over = true);
     Sfx.play('win');
     final r = await _saveScore('scramble', _score);
@@ -457,15 +625,15 @@ class _ScrambleGameState extends State<ScrambleGame> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
-      body: _loading
+      appBar: AppBar(title: Text(widget.title), actions: [_finishButton(!_loading && !_over, _finish)]),
+      body: _loading || (!_over && _i >= _words.length && _words.isNotEmpty)
           ? const Center(child: CircularProgressIndicator())
           : _over || _words.isEmpty
               ? _GameOver(score: _score, best: _best, again: _start)
               : ListView(padding: const EdgeInsets.all(20), children: [
                   Row(children: [Hudi(mood: _mood, size: 56), const SizedBox(width: 12),
-                    Text('Score $_score', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)), const Spacer(),
-                    Text('${_i + 1}/${_words.length}', style: TextStyle(color: Theme.of(context).hintColor))]),
+                    Text(tr('Score {n}', {'n': _score}), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)), const Spacer(),
+                    Text(tr('{n} words', {'n': _i}), style: TextStyle(color: Theme.of(context).hintColor))]),
                   const SizedBox(height: 22),
                   Text('${_words[_i]['definition']}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, height: 1.35)),
                   const SizedBox(height: 22),
@@ -482,24 +650,31 @@ class _ScrambleGameState extends State<ScrambleGame> {
                   const SizedBox(height: 22),
                   Wrap(alignment: WrapAlignment.center, spacing: 10, runSpacing: 10, children: [
                     for (final k in _order)
-                      AnimatedOpacity(
-                        opacity: _built.contains(k) ? .2 : 1,
+                      // a used letter fades to an empty outline, so what is left to place is plain to see
+                      AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
-                        child: Material(
-                          color: C.accent,
+                        width: 48, height: 52,
+                        decoration: BoxDecoration(
+                          color: _built.contains(k) ? Colors.transparent : C.accent,
                           borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: _built.contains(k) ? Theme.of(context).dividerColor : C.accent, width: 1.5),
+                        ),
+                        child: Material(
+                          type: MaterialType.transparency,
                           child: InkWell(
                             borderRadius: BorderRadius.circular(12),
                             onTap: _built.contains(k) ? null : () => _tap(k),
-                            child: SizedBox(width: 48, height: 52, child: Center(child: Text('${_words[_i]['word']}'[k].toUpperCase(),
-                                style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)))),
+                            child: Center(child: Text('${_words[_i]['word']}'[k].toUpperCase(),
+                                style: TextStyle(color: _built.contains(k) ? Theme.of(context).hintColor.withValues(alpha: .35) : Colors.white,
+                                    fontSize: 22, fontWeight: FontWeight.w800))),
                           ),
                         ),
                       ),
                   ]),
                   const SizedBox(height: 18),
-                  TextButton(onPressed: () => setState(() => _built.clear()), child: const Text('Clear')),
-                  TextButton(onPressed: () => _next(), child: const Text('Skip')),
+                  TextButton(onPressed: _built.isEmpty ? null : () => setState(() => _built.removeLast()), child: Text(tr('Undo'))),
+                  TextButton(onPressed: () => setState(() => _built.clear()), child: Text(tr('Clear'))),
+                  TextButton(onPressed: () => _next(), child: Text(tr('Skip'))),
                 ]),
     );
   }
@@ -539,8 +714,30 @@ class _CollocationGameState extends State<CollocationGame> {
     if (mounted) setState(() => _loading = false);
   }
 
+  bool _more = false;
+
+  @override
+  void dispose() {
+    if (!_over && _score > 0) _saveScore('collocations', _score);
+    super.dispose();
+  }
+
+  Future<void> _loadMore() async {
+    if (_more || _rounds.length - _r > 2) return;
+    _more = true;
+    try {
+      _rounds.addAll(((await Api.I.get('/api/games/collocations'))['rounds'] as List).cast<Map>());
+    } on ApiError { /* again next round */ }
+    _more = false;
+  }
+
   void _round() {
-    if (_r >= _rounds.length) { _finish(); return; }
+    _loadMore();
+    if (_r >= _rounds.length) {
+      if (_rounds.isEmpty) { _finish(); return; }
+      Future.delayed(const Duration(milliseconds: 400), () { if (mounted && !_over) _round(); });
+      return;
+    }
     final pairs = (_rounds[_r]['pairs'] as List).cast<Map>();
     _left = pairs.map((p) => '${p['a']}').toList()..shuffle();
     _right = pairs.map((p) => '${p['b']}').toList()..shuffle();
@@ -550,6 +747,7 @@ class _CollocationGameState extends State<CollocationGame> {
   }
 
   Future<void> _finish() async {
+    if (_over) return;
     setState(() => _over = true);
     Sfx.play('win');
     final r = await _saveScore('collocations', _score);
@@ -591,15 +789,15 @@ class _CollocationGameState extends State<CollocationGame> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
-      body: _loading
+      appBar: AppBar(title: Text(widget.title), actions: [_finishButton(!_loading && !_over, _finish)]),
+      body: _loading || (!_over && _r >= _rounds.length && _rounds.isNotEmpty)
           ? const Center(child: CircularProgressIndicator())
           : _over || _rounds.isEmpty
               ? _GameOver(score: _score, best: _best, again: _start)
               : ListView(padding: const EdgeInsets.all(16), children: [
                   Row(children: [Hudi(mood: _mood, size: 52), const SizedBox(width: 12),
-                    Text('Score $_score', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)), const Spacer(),
-                    Text('Round ${_r + 1}/${_rounds.length}', style: TextStyle(color: Theme.of(context).hintColor))]),
+                    Text(tr('Score {n}', {'n': _score}), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)), const Spacer(),
+                    Text(tr('Round {n}', {'n': _r + 1}), style: TextStyle(color: Theme.of(context).hintColor))]),
                   const SizedBox(height: 16),
                   Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Expanded(child: Column(children: [
@@ -639,14 +837,33 @@ class _LadderGameState extends State<LadderGame> {
   Future<void> _start() async {
     setState(() { _loading = true; _over = false; _l = 0; _step = 0; _score = 0; _best = null; _picked = null; });
     try {
-      _ladders = ((await Api.I.get('/api/games/ladders'))['ladders'] as List).cast<Map>().take(6).toList();
+      _ladders = ((await Api.I.get('/api/games/ladders'))['ladders'] as List).cast<Map>().toList();
     } on ApiError catch (e) {
       if (mounted) toast(context, e.message);
     }
     if (mounted) setState(() => _loading = false);
   }
 
+  bool _more = false;
+
+  @override
+  void dispose() {
+    if (!_over && _score > 0) _saveScore('ladder', _score);
+    super.dispose();
+  }
+
+  Future<void> _loadMore() async {
+    if (_more || _ladders.length - _l > 2) return;
+    _more = true;
+    try {
+      _ladders.addAll(((await Api.I.get('/api/games/ladders'))['ladders'] as List).cast<Map>());
+    } on ApiError { /* again on the next ladder */ }
+    _more = false;
+    if (mounted) setState(() {});
+  }
+
   Future<void> _finish() async {
+    if (_over) return;
     setState(() => _over = true);
     Sfx.play('win');
     final r = await _saveScore('ladder', _score);
@@ -665,14 +882,16 @@ class _LadderGameState extends State<LadderGame> {
         _picked = null;
         if (_step + 1 < steps.length) { _step++; } else { _step = 0; _l++; }
       });
-      if (_l >= _ladders.length) _finish();
+      _loadMore();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return Scaffold(appBar: AppBar(title: Text(widget.title)), body: const Center(child: CircularProgressIndicator()));
-    if (_over || _ladders.isEmpty || _l >= _ladders.length) {
+    if (_loading || (!_over && _l >= _ladders.length && _ladders.isNotEmpty)) {
+      return Scaffold(appBar: AppBar(title: Text(widget.title)), body: const Center(child: CircularProgressIndicator()));
+    }
+    if (_over || _ladders.isEmpty) {
       return Scaffold(appBar: AppBar(title: Text(widget.title)), body: _GameOver(score: _score, best: _best, again: _start));
     }
     final lad = _ladders[_l];
@@ -680,11 +899,11 @@ class _LadderGameState extends State<LadderGame> {
     final steps = (lad['steps'] as List).cast<Map>();
     final st = steps[_step];
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
+      appBar: AppBar(title: Text(widget.title), actions: [_finishButton(true, _finish)]),
       body: ListView(padding: const EdgeInsets.all(20), children: [
         Row(children: [
-          Text('Score $_score', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)), const Spacer(),
-          Text('Ladder ${_l + 1}/${_ladders.length}', style: TextStyle(color: Theme.of(context).hintColor)),
+          Text(tr('Score {n}', {'n': _score}), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)), const Spacer(),
+          Text(tr('{n} ladders', {'n': _l}), style: TextStyle(color: Theme.of(context).hintColor)),
         ]),
         const SizedBox(height: 16),
         // the ladder: Hudi stands on the rung being climbed
@@ -739,18 +958,41 @@ class _SpellGameState extends State<SpellGame> {
     _start();
   }
 
+  bool _more = false;
+  static bool _ok(Map m) => RegExp(r'^[a-zA-Z]{3,12}$').hasMatch('${m['word']}');
+
   @override
   void dispose() {
+    if (!_over && _score > 0) _saveScore('spell', _score);
     _player.dispose();
     _in.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadMore() async {
+    if (_more || _words.length - _i > 4) return;
+    _more = true;
+    try {
+      final r = await Api.I.get('/api/games/words', {'n': 20});
+      final have = _words.map((w) => '${w['word']}').toSet();
+      _words.addAll((r['items'] as List).cast<Map>().where((m) => _ok(m) && !have.contains('${m['word']}')));
+    } on ApiError { /* again on the next word */ }
+    _more = false;
+  }
+
+  Future<void> _finish() async {
+    if (_over) return;
+    setState(() => _over = true);
+    Sfx.play('win');
+    final r = await _saveScore('spell', _score);
+    if (mounted && r != null) setState(() => _best = (r['best'] as num?)?.toInt());
   }
 
   Future<void> _start() async {
     setState(() { _loading = true; _over = false; _i = 0; _score = 0; _best = null; _right = null; });
     try {
       final r = await Api.I.get('/api/games/words', {'n': 20});
-      _words = (r['items'] as List).cast<Map>().where((m) => RegExp(r'^[a-zA-Z]{3,12}$').hasMatch('${m['word']}')).take(10).toList();
+      _words = (r['items'] as List).cast<Map>().where(_ok).toList();
     } on ApiError catch (e) {
       if (mounted) toast(context, e.message);
     }
@@ -764,7 +1006,7 @@ class _SpellGameState extends State<SpellGame> {
       await _player.setUrl('$kBaseUrl/static/audio/words/${Uri.encodeComponent('${_words[_i]['word']}')}${sentence ? '.s' : ''}.mp3');
       await _player.play();
     } catch (_) {
-      if (mounted) toast(context, 'Could not play the word. Check your connection.');
+      if (mounted) toast(context, tr('Could not play the word. Check your connection.'));
     }
   }
 
@@ -775,13 +1017,9 @@ class _SpellGameState extends State<SpellGame> {
     setState(() { _right = right; _mood = right ? _mood.abs() + 1 : -(_mood.abs() + 1); if (right) _score += 10; });
     await Future.delayed(Duration(milliseconds: right ? 600 : 1400));
     if (!mounted) return;
-    if (_i + 1 >= _words.length) {
-      setState(() => _over = true);
-      Sfx.play('win');
-      final r = await _saveScore('spell', _score);
-      if (mounted && r != null) setState(() => _best = (r['best'] as num?)?.toInt());
-      return;
-    }
+    await _loadMore();
+    if (!mounted) return;
+    if (_i + 1 >= _words.length) { _finish(); return; }
     setState(() { _i++; _right = null; _in.clear(); });
     _say();
   }
@@ -789,15 +1027,15 @@ class _SpellGameState extends State<SpellGame> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
+      appBar: AppBar(title: Text(widget.title), actions: [_finishButton(!_loading && !_over, _finish)]),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _over || _words.isEmpty
               ? _GameOver(score: _score, best: _best, again: _start)
               : ListView(padding: const EdgeInsets.all(20), children: [
                   Row(children: [Hudi(mood: _mood, size: 56), const SizedBox(width: 12),
-                    Text('Score $_score', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)), const Spacer(),
-                    Text('${_i + 1}/${_words.length}', style: TextStyle(color: Theme.of(context).hintColor))]),
+                    Text(tr('Score {n}', {'n': _score}), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)), const Spacer(),
+                    Text(tr('{n} words', {'n': _i}), style: TextStyle(color: Theme.of(context).hintColor))]),
                   const SizedBox(height: 28),
                   Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                     IconButton.filled(iconSize: 40, onPressed: _say, icon: const Icon(Icons.volume_up_rounded)),
@@ -806,7 +1044,7 @@ class _SpellGameState extends State<SpellGame> {
                       style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
                       onPressed: () => _say(sentence: true),
                       icon: const Icon(Icons.short_text_rounded),
-                      label: const Text('In a sentence'),
+                      label: Text(tr('In a sentence')),
                     ),
                   ]),
                   const SizedBox(height: 28),
@@ -818,7 +1056,7 @@ class _SpellGameState extends State<SpellGame> {
                     style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
                     onSubmitted: (_) => _check(),
                     decoration: InputDecoration(
-                      hintText: 'Type the word',
+                      hintText: tr('Type the word'),
                       filled: true,
                       fillColor: _right == null ? null : (_right! ? C.green : C.red).withValues(alpha: .18),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
@@ -828,7 +1066,7 @@ class _SpellGameState extends State<SpellGame> {
                     Padding(padding: const EdgeInsets.only(top: 10), child: Text('It is "${_words[_i]['word']}"',
                         textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w700))),
                   const SizedBox(height: 18),
-                  FilledButton(onPressed: _check, child: const Text('Check')),
+                  FilledButton(onPressed: _check, child: Text(tr('Check'))),
                 ]),
     );
   }
@@ -862,7 +1100,7 @@ class _WordsBoardScreenState extends State<WordsBoardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: rootBar(context, AppBar(title: const Text('My words'))),
+      appBar: rootBar(context, AppBar(title: Text(tr('My words')))),
       body: Loader<Map<String, dynamic>>(
         key: _k,
         load: () => Api.I.get('/api/app/words'),
@@ -897,7 +1135,7 @@ class _WordsBoardScreenState extends State<WordsBoardScreen> {
                         await Navigator.push(context, MaterialPageRoute(builder: (_) => const WordsReviewScreen()));
                         setState(() => _k = UniqueKey());
                       },
-                      child: const Text('Review'),
+                      child: Text(tr('Review')),
                     ),
                 ]),
               ),
@@ -923,7 +1161,7 @@ class _WordsBoardScreenState extends State<WordsBoardScreen> {
             if (words.isNotEmpty)
               TextField(
                 onChanged: (v) => setState(() => _q = v),
-                decoration: const InputDecoration(hintText: 'Find a word', prefixIcon: Icon(Icons.search_rounded), isDense: true),
+                decoration: InputDecoration(hintText: tr('Find a word'), prefixIcon: Icon(Icons.search_rounded), isDense: true),
               ),
             const SizedBox(height: 10),
             if (words.isEmpty)
@@ -932,7 +1170,7 @@ class _WordsBoardScreenState extends State<WordsBoardScreen> {
                 child: Column(children: [
                   const Hudi(mood: 0, size: 90, face: 'sleep'),
                   const SizedBox(height: 10),
-                  Text('No saved words yet. In Reading, tap a word to see its meaning and save it here.',
+                  Text(tr('No saved words yet. In Reading, tap a word to see its meaning and save it here.'),
                       textAlign: TextAlign.center, style: TextStyle(color: Theme.of(context).hintColor)),
                 ]),
               ),
@@ -973,7 +1211,7 @@ class _WordsBoardScreenState extends State<WordsBoardScreen> {
                           TextButton.icon(
                             style: TextButton.styleFrom(foregroundColor: C.red),
                             icon: const Icon(Icons.delete_outline_rounded),
-                            label: const Text('Remove from My words'),
+                            label: Text(tr('Remove from My words')),
                             onPressed: () { Navigator.pop(c); _remove(w); },
                           ),
                         ]),
@@ -1035,14 +1273,14 @@ class _WordsReviewScreenState extends State<WordsReviewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Review')),
+      appBar: AppBar(title: Text(tr('Review'))),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _items.isEmpty || _i >= _items.length
               ? Center(child: Padding(padding: const EdgeInsets.all(28), child: Column(mainAxisSize: MainAxisSize.min, children: [
                   Hudi(mood: 0, size: 100, face: _items.isEmpty ? 'sleep' : 'cheer'),
                   const SizedBox(height: 16),
-                  Text(_items.isEmpty ? 'No words to review today.' : 'All done for today!', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                  Text(_items.isEmpty ? tr('No words to review today.') : 'All done for today!', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 6),
                   Text('You have ${_data?['total'] ?? 0} saved words. Tap a word in Reading to save it.',
                       textAlign: TextAlign.center, style: TextStyle(color: Theme.of(context).hintColor)),
@@ -1068,11 +1306,11 @@ class _WordsReviewScreenState extends State<WordsReviewScreen> {
               onTap: _picked != null ? null : () { setState(() => _picked = o); _answer(o == '${it['answer']}'); })
       else ...[
         TextField(controller: _in, autocorrect: false, enableSuggestions: false, enabled: !_shown,
-            decoration: InputDecoration(hintText: 'The missing word', filled: true,
+            decoration: InputDecoration(hintText: tr('The missing word'), filled: true,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none)),
             onSubmitted: (v) => _answer(v.trim().toLowerCase() == '${it['answer']}')),
         const SizedBox(height: 12),
-        if (!_shown) FilledButton(onPressed: () => _answer(_in.text.trim().toLowerCase() == '${it['answer']}'), child: const Text('Check')),
+        if (!_shown) FilledButton(onPressed: () => _answer(_in.text.trim().toLowerCase() == '${it['answer']}'), child: Text(tr('Check'))),
       ],
       if (_shown) ...[
         const SizedBox(height: 14),
@@ -1088,7 +1326,7 @@ class _WordsReviewScreenState extends State<WordsReviewScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        FilledButton(onPressed: _next, child: const Text('Next')),
+        FilledButton(onPressed: _next, child: Text(tr('Next'))),
       ],
     ]);
   }

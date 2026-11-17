@@ -1,6 +1,8 @@
 // Mock Day in the app: the next event (join, then take the test at the set time), and the results.
 import 'package:flutter/material.dart';
 
+import '../i18n.dart';
+
 import '../api.dart';
 import '../theme.dart';
 import '../widgets.dart';
@@ -19,14 +21,14 @@ class MockDayScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Mock Day')),
+      appBar: AppBar(title: Text(tr('Mock Day'))),
       body: Loader<Map<String, dynamic>>(
         load: () => Api.I.get('/api/app/mockday'),
         build: (context, d, reload) {
           final e = (d['event'] as Map?)?.cast<String, dynamic>();
           if (e == null) {
-            return ListView(children: const [Padding(padding: EdgeInsets.all(40),
-                child: Center(child: Text('No Mock Day is planned yet. Watch your notifications for the next one.', textAlign: TextAlign.center)))]);
+            return ListView(children: [Padding(padding: EdgeInsets.all(40),
+                child: Center(child: Text(tr('No Mock Day is planned yet. Watch your notifications for the next one.'), textAlign: TextAlign.center)))]);
           }
           final state = '${e['state']}';
           final mine = e['me'] as Map?;
@@ -76,15 +78,15 @@ class MockDayScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   if (state == 'upcoming' || state == 'open') ...[
                     if (mine == null)
-                      FilledButton(onPressed: () => act('join'), child: const Text('Join'))
+                      FilledButton(onPressed: () => act('join'), child: Text(tr('Join')))
                     else if (state == 'open' && mine['band'] == null)
-                      FilledButton(onPressed: () => act('start'), child: const Text('Start the test'))
+                      FilledButton(onPressed: () => act('start'), child: Text(tr('Start the test')))
                     else if (state == 'upcoming')
                       Row(children: [
                         const Icon(Icons.check_circle_rounded, color: C.green),
                         const SizedBox(width: 8),
-                        const Expanded(child: Text('You are in. We will remind you when it starts.')),
-                        TextButton(onPressed: () => act('leave'), child: const Text('Leave')),
+                        Expanded(child: Text(tr('You are in. We will remind you when it starts.'))),
+                        TextButton(onPressed: () => act('leave'), child: Text(tr('Leave'))),
                       ]),
                   ],
                   if (mine != null && mine['band'] != null)
@@ -93,7 +95,7 @@ class MockDayScreen extends StatelessWidget {
               ),
             ),
             if (top.isNotEmpty) ...[
-              const Padding(padding: EdgeInsets.fromLTRB(4, 20, 4, 8), child: Text('Results', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800))),
+              Padding(padding: EdgeInsets.fromLTRB(4, 20, 4, 8), child: Text(tr('Results'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800))),
               for (var i = 0; i < top.length; i++)
                 Card(
                   margin: const EdgeInsets.only(bottom: 8),

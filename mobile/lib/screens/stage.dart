@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../i18n.dart';
+
 import '../api.dart';
 import '../theme.dart';
 import '../prefs.dart';
@@ -115,7 +117,7 @@ class _StageScreenState extends State<StageScreen> {
         child: Column(children: [
           Expanded(
             child: ListView(padding: const EdgeInsets.all(20), children: [
-              Text(_q['type'] == 'spot' ? 'Tap the part with the mistake' : _q['type'] == 'type' ? 'Type the answer' : 'Choose the answer',
+              Text(_q['type'] == 'spot' ? tr('Tap the part with the mistake') : _q['type'] == 'type' ? 'Type the answer' : 'Choose the answer',
                   style: TextStyle(color: Theme.of(context).hintColor, fontWeight: FontWeight.w600)),
               const SizedBox(height: 10),
               Text('${_q['prompt']}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, height: 1.35)),
@@ -144,7 +146,7 @@ class _StageScreenState extends State<StageScreen> {
             onChanged: (_) => setState(() {}),
             onSubmitted: (_) { if (_canCheck) _check(); },
             decoration: InputDecoration(
-              hintText: 'Your answer',
+              hintText: tr('Your answer'),
               filled: true,
               fillColor: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: .07) : const Color(0xFF141413).withValues(alpha: .05),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
@@ -205,7 +207,7 @@ class _StageScreenState extends State<StageScreen> {
         padding: const EdgeInsets.all(16),
         child: FilledButton(onPressed: _canCheck ? _check : null, child: _sending
             ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-            : const Text('Check')),
+            : Text(tr('Check'))),
       );
     }
     final ok = fb['correct'] == true;
@@ -218,7 +220,7 @@ class _StageScreenState extends State<StageScreen> {
         Row(children: [
           Icon(ok ? Icons.check_circle_rounded : Icons.cancel_rounded, color: color),
           const SizedBox(width: 8),
-          Text(ok ? 'Correct!' : 'Not quite', style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 18)),
+          Text(ok ? tr('Correct!') : tr('Not quite'), style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 18)),
           const Spacer(),
           if ((fb['points'] ?? 0) != 0) Text('+${fb['points']}', style: const TextStyle(color: C.gold, fontWeight: FontWeight.w700)),
         ]),
@@ -234,7 +236,7 @@ class _StageScreenState extends State<StageScreen> {
         FilledButton(
           style: FilledButton.styleFrom(backgroundColor: color),
           onPressed: _next,
-          child: Text(_i >= _qs.length - 1 ? 'See results' : 'Continue'),
+          child: Text(_i >= _qs.length - 1 ? tr('See results') : 'Continue'),
         ),
       ]),
     );
@@ -267,22 +269,22 @@ class _ResultView extends StatelessWidget {
                 ),
             ]),
             const SizedBox(height: 12),
-            Text(stars >= 2 ? 'Great work!' : stars == 1 ? 'Stage done!' : 'Keep practising!',
+            Text(stars >= 2 ? tr('Great work!') : stars == 1 ? 'Stage done!' : 'Keep practising!',
                 style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800)),
             const SizedBox(height: 6),
             Text(title, style: TextStyle(color: Theme.of(context).hintColor)),
             const SizedBox(height: 24),
             Row(children: [
-              StatTile(icon: Icons.check_circle_rounded, color: C.green, value: '${r['score'] ?? score}/${r['total'] ?? total}', label: 'Correct'),
+              StatTile(icon: Icons.check_circle_rounded, color: C.green, value: '${r['score'] ?? score}/${r['total'] ?? total}', label: tr('Correct')),
               const SizedBox(width: 12),
-              StatTile(icon: Icons.star_rounded, color: C.gold, value: '+${r['points'] ?? 0}', label: 'Points'),
+              StatTile(icon: Icons.star_rounded, color: C.gold, value: '+${r['points'] ?? 0}', label: tr('Points')),
               if (streak != null) ...[
                 const SizedBox(width: 12),
-                StatTile(icon: Icons.local_fire_department_rounded, color: C.accent, value: '$streak', label: 'Streak'),
+                StatTile(icon: Icons.local_fire_department_rounded, color: C.accent, value: '$streak', label: tr('Streak')),
               ],
             ]),
             const Spacer(),
-            FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Done')),
+            FilledButton(onPressed: () => Navigator.pop(context), child: Text(tr('Done'))),
           ]),
         ),
       ),

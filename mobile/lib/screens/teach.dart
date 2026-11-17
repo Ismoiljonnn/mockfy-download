@@ -1,12 +1,15 @@
 // The Teaching workspace in the app: the class at a glance, students and groups, homework (assignments).
 import 'package:flutter/material.dart';
 
+import '../i18n.dart';
+
 import '../desktop_shell.dart';
 import '../api.dart';
 import '../prefs.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import 'profile.dart';
+import 'teach_extra.dart';
 import 'tests.dart';
 
 // ---------------------------------------------------------------- Home
@@ -19,7 +22,7 @@ class TeachHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: rootBar(context, AppBar(leading: menuButton(context), title: const Text('My class'))),
+      appBar: rootBar(context, AppBar(leading: menuButton(context), title: Text(tr('My class')))),
       body: Loader<Map<String, dynamic>>(
         load: () => Api.I.get('/api/app/teach'),
         onSignedOut: onSignedOut,
@@ -30,11 +33,11 @@ class TeachHomeScreen extends StatelessWidget {
           final recent = (o['recent'] as List? ?? []).cast<Map>();
           return ListView(padding: const EdgeInsets.all(16), children: [
             Row(children: [
-              StatTile(icon: Icons.people_alt_rounded, color: C.blue, value: '${o['students'] ?? 0}', label: 'Students', onTap: () => goTab(1)),
+              StatTile(icon: Icons.people_alt_rounded, color: C.blue, value: '${o['students'] ?? 0}', label: tr('Students'), onTap: () => goTab(1)),
               const SizedBox(width: 10),
-              StatTile(icon: Icons.assignment_rounded, color: C.accent, value: '${o['open_assignments'] ?? 0}', label: 'Open homework', onTap: () => goTab(2)),
+              StatTile(icon: Icons.assignment_rounded, color: C.accent, value: '${o['open_assignments'] ?? 0}', label: tr('Open homework'), onTap: () => goTab(2)),
               const SizedBox(width: 10),
-              StatTile(icon: Icons.hourglass_top_rounded, color: C.gold, value: '${o['pending'] ?? 0}', label: 'Invites sent', onTap: () => goTab(1)),
+              StatTile(icon: Icons.hourglass_top_rounded, color: C.gold, value: '${o['pending'] ?? 0}', label: tr('Invites sent'), onTap: () => goTab(1)),
             ]),
             if ((o['students'] ?? 0) == 0 && (o['pending'] ?? 0) == 0) ...[
               const SizedBox(height: 16),
@@ -42,16 +45,34 @@ class TeachHomeScreen extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.all(18),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('Start your class', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                    Text(tr('Start your class'), style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
                     const SizedBox(height: 6),
-                    Text('Make a group, then add students by their @username. They get a request in Mockfy.',
+                    Text(tr('Make a group, then add students by their @username. They get a request in Mockfy.'),
                         style: TextStyle(color: Theme.of(context).hintColor)),
                     const SizedBox(height: 14),
-                    FilledButton(onPressed: () => goTab(1), child: const Text('Add students')),
+                    FilledButton(onPressed: () => goTab(1), child: Text(tr('Add students'))),
                   ]),
                 ),
               ),
             ],
+            const SizedBox(height: 12),
+            Card(
+              child: Column(children: [
+                ListTile(
+                  leading: const Icon(Icons.insights_rounded, color: C.blue),
+                  title: Text(tr('Report')),
+                  subtitle: Text(tr('Who is active, who is behind')),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TeachReportScreen())),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.business_rounded, color: C.accent),
+                  title: Text(tr('Centre settings')),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TeachCentreScreen())),
+                ),
+              ]),
+            ),
             if (soon.isNotEmpty) _block(context, 'Due soon', [
               for (final a in soon)
                 ListTile(
@@ -133,22 +154,22 @@ class _StudentsScreenState extends State<StudentsScreen> {
       context: context,
       builder: (c) => StatefulBuilder(
         builder: (c, set) => AlertDialog(
-          title: const Text('Add a student'),
+          title: Text(tr('Add a student')),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
-            TextField(controller: q, autofocus: true, decoration: const InputDecoration(labelText: '@username or email')),
+            TextField(controller: q, autofocus: true, decoration: InputDecoration(labelText: tr('@username or email'))),
             if (groups.isNotEmpty) ...[
               const SizedBox(height: 12),
               DropdownButtonFormField<int>(
                 value: gid,
-                decoration: const InputDecoration(labelText: 'Group'),
+                decoration: InputDecoration(labelText: tr('Group')),
                 items: [for (final g in groups) DropdownMenuItem(value: (g['id'] as num).toInt(), child: Text('${g['name']}'))],
                 onChanged: (v) => set(() => gid = v),
               ),
             ],
           ]),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-            TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Send request')),
+            TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancel'))),
+            TextButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Send request'))),
           ],
         ),
       ),
@@ -174,14 +195,20 @@ class _StudentsScreenState extends State<StudentsScreen> {
         final all = (d['students'] as List).cast<Map>();
         final shown = _group == null ? all : all.where((s) => s['group_id'] == _group).toList();
         return Scaffold(
-          appBar: rootBar(context, AppBar(leading: menuButton(context), title: const Text('Students'), actions: [
-            IconButton(tooltip: 'New group', icon: const Icon(Icons.create_new_folder_outlined), onPressed: _newGroup),
+          appBar: rootBar(context, AppBar(leading: menuButton(context), title: Text(tr('Students')), actions: [
+            if (groups.isNotEmpty)
+              IconButton(
+                tooltip: tr('Join link'),
+                icon: const Icon(Icons.qr_code_rounded),
+                onPressed: () => showJoinLink(context, _group ?? (groups.first['id'] as num).toInt()),
+              ),
+            IconButton(tooltip: tr('New group'), icon: const Icon(Icons.create_new_folder_outlined), onPressed: _newGroup),
           ])),
           floatingActionButton: FloatingActionButton.extended(
             heroTag: 'add-student',
             onPressed: () => _invite(groups),
             icon: const Icon(Icons.person_add_alt_1_rounded),
-            label: const Text('Add student'),
+            label: Text(tr('Add student')),
           ),
           body: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 90), children: [
             SingleChildScrollView(
@@ -201,7 +228,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
             ),
             const SizedBox(height: 12),
             if (shown.isEmpty)
-              const Padding(padding: EdgeInsets.all(32), child: Center(child: Text('No students here yet.'))),
+              Padding(padding: EdgeInsets.all(32), child: Center(child: Text(tr('No students here yet.')))),
             for (final s in shown)
               Card(
                 margin: const EdgeInsets.only(bottom: 8),
@@ -231,8 +258,8 @@ Future<String?> _ask(BuildContext context, String title, String hint) async {
       title: Text(title),
       content: TextField(controller: c, autofocus: true, decoration: InputDecoration(hintText: hint)),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Cancel')),
-        TextButton(onPressed: () => Navigator.pop(d, true), child: const Text('Save')),
+        TextButton(onPressed: () => Navigator.pop(d, false), child: Text(tr('Cancel'))),
+        TextButton(onPressed: () => Navigator.pop(d, true), child: Text(tr('Save'))),
       ],
     ),
   );
@@ -247,7 +274,9 @@ class StudentScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(name)),
+      appBar: AppBar(title: Text(name), actions: [
+        IconButton(tooltip: tr('Link for parents'), icon: const Icon(Icons.family_restroom_rounded), onPressed: () => showParentLink(context, id)),
+      ]),
       body: Loader<Map<String, dynamic>>(
         load: () => Api.I.get('/api/app/teach/students/$id'),
         build: (context, d, reload) {
@@ -267,7 +296,7 @@ class StudentScreen extends StatelessWidget {
                 ]),
               ),
               IconButton(
-                tooltip: 'Profile',
+                tooltip: tr('Profile'),
                 icon: const Icon(Icons.person_rounded),
                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen(username: '${p['username']}', onSignedOut: () {}))),
               ),
@@ -293,14 +322,14 @@ class StudentScreen extends StatelessWidget {
               Card(
                 child: ListTile(
                   leading: const Icon(Icons.folder_outlined),
-                  title: const Text('Move to a group'),
+                  title: Text(tr('Move to a group')),
                   trailing: PopupMenuButton<int>(
                     icon: const Icon(Icons.more_horiz_rounded),
                     itemBuilder: (_) => [for (final g in groups) PopupMenuItem(value: (g['id'] as num).toInt(), child: Text('${g['name']}'))],
                     onSelected: (gid) async {
                       try {
                         await Api.I.post('/api/teach/students/$id', {'group_id': gid});
-                        if (context.mounted) toast(context, 'Moved.');
+                        if (context.mounted) toast(context, tr('Moved.'));
                       } on ApiError catch (e) {
                         if (context.mounted) toast(context, e.message);
                       }
@@ -331,16 +360,16 @@ class StudentScreen extends StatelessWidget {
             TextButton.icon(
               style: TextButton.styleFrom(foregroundColor: C.red),
               icon: const Icon(Icons.person_remove_rounded),
-              label: const Text('Remove from my class'),
+              label: Text(tr('Remove from my class')),
               onPressed: () async {
                 final ok = await showDialog<bool>(
                   context: context,
                   builder: (c) => AlertDialog(
                     title: Text('Remove ${p['name']}?'),
-                    content: const Text('Their own results stay theirs. You can add them again later.'),
+                    content: Text(tr('Their own results stay theirs. You can add them again later.')),
                     actions: [
-                      TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-                      TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Remove')),
+                      TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancel'))),
+                      TextButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Remove'))),
                     ],
                   ),
                 );
@@ -380,18 +409,18 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       build: (context, d, reload) {
         final items = (d['items'] as List).cast<Map>();
         return Scaffold(
-          appBar: rootBar(context, AppBar(leading: menuButton(context), title: const Text('Homework'))),
+          appBar: rootBar(context, AppBar(leading: menuButton(context), title: Text(tr('Homework')))),
           floatingActionButton: FloatingActionButton.extended(
             heroTag: 'new-homework',
             icon: const Icon(Icons.add_rounded),
-            label: const Text('New homework'),
+            label: Text(tr('New homework')),
             onPressed: () async {
               final made = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => NewAssignmentScreen(data: d)));
               if (made == true) setState(() => _k = UniqueKey());
             },
           ),
           body: items.isEmpty
-              ? const Center(child: Padding(padding: EdgeInsets.all(32), child: Text('No homework yet. Give a test to a group or to students.', textAlign: TextAlign.center)))
+              ? Center(child: Padding(padding: EdgeInsets.all(32), child: Text(tr('No homework yet. Give a test to a group or to students.'), textAlign: TextAlign.center)))
               : ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 90), children: [
                   for (final a in items)
                     Card(
@@ -421,7 +450,7 @@ class AssignmentScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Homework')),
+      appBar: AppBar(title: Text(tr('Homework'))),
       body: Loader<Map<String, dynamic>>(
         load: () => Api.I.get('/api/app/teach/assignments/$id'),
         build: (context, d, reload) {
@@ -443,23 +472,23 @@ class AssignmentScreen extends StatelessWidget {
                     title: Text('${r['name'] ?? ''}'),
                     trailing: Text('${r['band'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                   ),
-                if (rows.isEmpty) const ListTile(title: Text('No students on this homework yet.')),
+                if (rows.isEmpty) ListTile(title: Text(tr('No students on this homework yet.'))),
               ]),
             ),
             const SizedBox(height: 18),
             TextButton.icon(
               style: TextButton.styleFrom(foregroundColor: C.red),
               icon: const Icon(Icons.delete_outline_rounded),
-              label: const Text('Delete this homework'),
+              label: Text(tr('Delete this homework')),
               onPressed: () async {
                 final ok = await showDialog<bool>(
                   context: context,
                   builder: (c) => AlertDialog(
-                    title: const Text('Delete this homework?'),
-                    content: const Text('Students who already did the test keep their results.'),
+                    title: Text(tr('Delete this homework?')),
+                    content: Text(tr('Students who already did the test keep their results.')),
                     actions: [
-                      TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-                      TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Delete')),
+                      TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancel'))),
+                      TextButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Delete'))),
                     ],
                   ),
                 );
@@ -526,12 +555,12 @@ class _NewAssignmentScreenState extends State<NewAssignmentScreen> {
     final t = _picked;
     final scopes = t == null ? <String>[] : [if (t['full'] == true) 'full', for (final s in (t['sections'] as List).cast<Map>()) '${s['key']}'];
     return Scaffold(
-      appBar: AppBar(title: const Text('New homework')),
+      appBar: AppBar(title: Text(tr('New homework'))),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         DropdownButtonFormField<String>(
           value: _test,
           isExpanded: true,
-          decoration: const InputDecoration(labelText: 'Test'),
+          decoration: InputDecoration(labelText: tr('Test')),
           items: [for (final x in _tests) DropdownMenuItem(value: '${x['slug']}', child: Text('${x['title']}', overflow: TextOverflow.ellipsis))],
           onChanged: (v) => setState(() { _test = v; _scope = null; }),
         ),
@@ -540,14 +569,14 @@ class _NewAssignmentScreenState extends State<NewAssignmentScreen> {
           Wrap(spacing: 8, runSpacing: 8, children: [
             for (final s in scopes)
               ChoiceChip(
-                label: Text(s == 'full' ? 'Full mock' : s[0].toUpperCase() + s.substring(1)),
+                label: Text(s == 'full' ? tr('Full mock') : s[0].toUpperCase() + s.substring(1)),
                 selected: _scope == s,
                 onSelected: (_) => setState(() => _scope = s),
               ),
           ]),
         ],
         const SizedBox(height: 18),
-        const Text('Who', style: TextStyle(fontWeight: FontWeight.w800)),
+        Text(tr('Who'), style: TextStyle(fontWeight: FontWeight.w800)),
         const SizedBox(height: 8),
         Wrap(spacing: 8, runSpacing: 8, children: [
           for (final g in groups)
@@ -570,7 +599,7 @@ class _NewAssignmentScreenState extends State<NewAssignmentScreen> {
           leading: const Icon(Icons.event_rounded),
           title: Text(_due == null ? 'No deadline' : _dueText(_due!.toIso8601String())),
           trailing: TextButton(
-            child: const Text('Pick'),
+            child: Text(tr('Pick')),
             onPressed: () async {
               final now = DateTime.now();
               final day = await showDatePicker(context: context, firstDate: now, lastDate: now.add(const Duration(days: 365)), initialDate: now.add(const Duration(days: 7)));
@@ -582,19 +611,19 @@ class _NewAssignmentScreenState extends State<NewAssignmentScreen> {
         ),
         DropdownButtonFormField<double?>(
           value: _target,
-          decoration: const InputDecoration(labelText: 'Target band (optional)'),
+          decoration: InputDecoration(labelText: tr('Target band (optional)')),
           items: [
-            const DropdownMenuItem<double?>(value: null, child: Text('None')),
+            DropdownMenuItem<double?>(value: null, child: Text(tr('None'))),
             for (var b = 4.0; b <= 9.0; b += .5) DropdownMenuItem<double?>(value: b, child: Text(b.toStringAsFixed(1))),
           ],
           onChanged: (v) => setState(() => _target = v),
         ),
         const SizedBox(height: 12),
-        TextField(controller: _note, maxLines: 3, decoration: const InputDecoration(labelText: 'Note for students (optional)')),
+        TextField(controller: _note, maxLines: 3, decoration: InputDecoration(labelText: tr('Note for students (optional)'))),
         const SizedBox(height: 22),
         FilledButton(
           onPressed: _busy || _test == null || _scope == null || (_groups.isEmpty && _students.isEmpty) ? null : _save,
-          child: const Text('Give homework'),
+          child: Text(tr('Give homework')),
         ),
       ]),
     );

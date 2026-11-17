@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../i18n.dart';
+
 import '../desktop_shell.dart';
 import '../api.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import 'home_plan.dart';
 import 'profile.dart';
 import 'shop.dart';
 import 'stage.dart';
@@ -46,7 +49,7 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('Hello,', style: TextStyle(color: Theme.of(context).hintColor)),
+                    Text(tr('Hello,'), style: TextStyle(color: Theme.of(context).hintColor)),
                     Row(children: [
                       Flexible(child: Text('${m['name']}', overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700))),
@@ -60,9 +63,9 @@ class HomeScreen extends StatelessWidget {
               _StreakCard(streak: streak),
               const SizedBox(height: 12),
               Row(children: [
-                StatTile(icon: Icons.star_rounded, color: C.gold, value: '${m['points'] ?? 0}', label: 'Points'),
+                StatTile(icon: Icons.star_rounded, color: C.gold, value: '${m['points'] ?? 0}', label: tr('Points')),
                 const SizedBox(width: 12),
-                StatTile(icon: Icons.diamond_rounded, color: const Color(0xFF9B7BEA), value: '${m['crystals'] ?? 0}', label: 'Crystals · Shop',
+                StatTile(icon: Icons.diamond_rounded, color: const Color(0xFF9B7BEA), value: '${m['crystals'] ?? 0}', label: tr('Crystals · Shop'),
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ShopScreen(onSignedOut: onSignedOut)))),
               ]),
               const SizedBox(height: 12),
@@ -84,7 +87,7 @@ class HomeScreen extends StatelessWidget {
                       const SizedBox(width: 14),
                       Expanded(
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          const Text('Daily English', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                          Text(tr('Daily English'), style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
                           const SizedBox(height: 2),
                           Text(daily['todayDone'] == true ? 'Today\'s stage is done. Keep going!' : next != null ? 'Next: ${next['title']}' : 'Open the map',
                               style: TextStyle(color: Theme.of(context).hintColor)),
@@ -99,13 +102,14 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
               ),
+              HomePlan(goTab: goTab),
               const SizedBox(height: 12),
               Card(
                 child: ListTile(
                   onTap: () => goTab(1),
                   leading: const Icon(Icons.headphones_rounded, color: C.blue),
-                  title: const Text('Mock tests and section practice'),
-                  subtitle: const Text('Listening, Reading, Writing and Speaking'),
+                  title: Text(tr('Mock tests and section practice')),
+                  subtitle: Text(tr('Listening, Reading, Writing and Speaking')),
                   trailing: const Icon(Icons.chevron_right_rounded),
                 ),
               ),
@@ -158,7 +162,7 @@ class _StreakCard extends StatelessWidget {
             const SizedBox(width: 8),
             Text('$count', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800)),
             const SizedBox(width: 6),
-            Text(count == 1 ? 'day streak' : 'day streak', style: TextStyle(color: Theme.of(context).hintColor)),
+            Text(count == 1 ? tr('day streak') : tr('day streak'), style: TextStyle(color: Theme.of(context).hintColor)),
             const Spacer(),
             Text('Best ${streak['best'] ?? 0}', style: TextStyle(color: Theme.of(context).hintColor)),
           ]),
@@ -198,10 +202,10 @@ class _Recommended extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Recommendations', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                Text(tr('Recommendations'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 8),
                 if (items.isEmpty)
-                  Text('They are built from the questions you miss, so they appear after your first test.',
+                  Text(tr('They are built from the questions you miss, so they appear after your first test.'),
                       style: TextStyle(color: Theme.of(context).hintColor))
                 else
                   for (final r in items.take(4))

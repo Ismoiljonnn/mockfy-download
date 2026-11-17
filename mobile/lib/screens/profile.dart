@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../i18n.dart';
+
 import '../api.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import 'activity.dart';
 import '../notify.dart';
 import '../webpage.dart';
 import 'more.dart';
@@ -20,7 +23,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(leading: isRoot ? menuButton(context) : null, title: isRoot ? const Text('Profile') : _Title(username: username)),
+      appBar: AppBar(leading: isRoot ? menuButton(context) : null, title: isRoot ? Text(tr('Profile')) : _Title(username: username)),
       body: Loader<Map<String, dynamic>>(
         load: () => Api.I.get('/api/app/profile/$username'),
         onSignedOut: onSignedOut,
@@ -46,23 +49,23 @@ class ProfileScreen extends StatelessWidget {
             if (p['isBot'] == true)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
-                child: Text('Mockfy bot · a practice rival run by Mockfy, not a person', textAlign: TextAlign.center,
+                child: Text(tr('Mockfy bot · a practice rival run by Mockfy, not a person'), textAlign: TextAlign.center,
                     style: TextStyle(color: Theme.of(context).hintColor, fontSize: 12)),
               ),
             const SizedBox(height: 18),
             Row(children: [
-              StatTile(icon: Icons.star_rounded, color: C.gold, value: '${p['points'] ?? 0}', label: 'Points'),
+              StatTile(icon: Icons.star_rounded, color: C.gold, value: '${p['points'] ?? 0}', label: tr('Points')),
               const SizedBox(width: 10),
-              StatTile(icon: Icons.local_fire_department_rounded, color: C.accent, value: '${p['streak'] ?? 0}', label: 'Streak'),
+              StatTile(icon: Icons.local_fire_department_rounded, color: C.accent, value: '${p['streak'] ?? 0}', label: tr('Streak')),
               const SizedBox(width: 10),
-              StatTile(icon: Icons.task_alt_rounded, color: C.green, value: '${p['testsDone'] ?? 0}', label: 'Tests'),
+              StatTile(icon: Icons.task_alt_rounded, color: C.green, value: '${p['testsDone'] ?? 0}', label: tr('Tests')),
             ]),
             const SizedBox(height: 12),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('Best band by section', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                  Text(tr('Best band by section'), style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
                   const SizedBox(height: 12),
                   Row(children: [
                     for (final s in _sections)
@@ -77,23 +80,27 @@ class ProfileScreen extends StatelessWidget {
                 ]),
               ),
             ),
+            if (r['activity'] is Map) ...[
+              const SizedBox(height: 12),
+              ActivityCard(username: '${p['username']}', initial: (r['activity'] as Map).cast<String, dynamic>()),
+            ],
             const SizedBox(height: 12),
             Card(
               child: Column(children: [
                 ListTile(
                   leading: const Icon(Icons.map_rounded, color: C.green),
-                  title: const Text('Daily English'),
+                  title: Text(tr('Daily English')),
                   trailing: Text('${p['dailyDone'] ?? 0} / ${p['dailyTotal'] ?? 0}'),
                 ),
                 ListTile(
                   leading: const Icon(Icons.emoji_events_rounded, color: C.gold),
-                  title: const Text('Best streak'),
+                  title: Text(tr('Best streak')),
                   trailing: Text('${p['bestStreak'] ?? 0} days'),
                 ),
                 if (r['friendsOpen'] == true)
                   ListTile(
                     leading: const Icon(Icons.people_alt_rounded, color: C.blue),
-                    title: const Text('Friends'),
+                    title: Text(tr('Friends')),
                     trailing: Text('${p['friendCount'] ?? 0}'),
                   ),
               ]),
@@ -105,8 +112,8 @@ class ProfileScreen extends StatelessWidget {
                   color: C.gold.withValues(alpha: .12),
                   child: ListTile(
                     leading: const ProTick(size: 28),
-                    title: const Text('Get Mockfy Pro', style: TextStyle(fontWeight: FontWeight.w700)),
-                    subtitle: const Text('More tests a week, detailed AI feedback and a free streak freeze every month'),
+                    title: Text(tr('Get Mockfy Pro'), style: TextStyle(fontWeight: FontWeight.w700)),
+                    subtitle: Text(tr('More tests a week, detailed AI feedback and a free streak freeze every month')),
                     onTap: () => showProSheet(context, who: '', isMe: false, viewerPro: false),
                   ),
                 ),
@@ -118,14 +125,14 @@ class ProfileScreen extends StatelessWidget {
                     valueListenable: Notify.I.unread,
                     builder: (context, n, _) => ListTile(
                       leading: const Icon(Icons.notifications_rounded, color: C.red),
-                      title: const Text('Notifications'),
+                      title: Text(tr('Notifications')),
                       trailing: n > 0 ? Badge(label: Text('$n')) : const Icon(Icons.chevron_right_rounded),
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen())),
                     ),
                   ),
                   ListTile(
                     leading: const Icon(Icons.settings_rounded),
-                    title: const Text('Settings'),
+                    title: Text(tr('Settings')),
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () async {
                       await Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsScreen(username: username, onSignedOut: onSignedOut)));
@@ -139,13 +146,13 @@ class ProfileScreen extends StatelessWidget {
                 child: Column(children: [
                   ListTile(
                     leading: const Icon(Icons.menu_book_rounded, color: C.blue),
-                    title: const Text('Guide'),
+                    title: Text(tr('Guide')),
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WebPage(title: 'Guide', path: '/docs'))),
                   ),
                   ListTile(
                     leading: const Icon(Icons.chat_rounded, color: C.green),
-                    title: const Text('Send feedback'),
+                    title: Text(tr('Send feedback')),
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FeedbackScreen())),
                   ),

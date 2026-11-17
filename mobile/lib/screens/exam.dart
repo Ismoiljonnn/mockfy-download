@@ -4,6 +4,8 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+
+import '../i18n.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:just_audio/just_audio.dart';
@@ -13,6 +15,8 @@ import 'package:record/record.dart';
 import '../api.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import 'listening.dart';
+import 'results.dart';
 import 'tests.dart';
 
 class ExamScreen extends StatefulWidget {
@@ -22,7 +26,31 @@ class ExamScreen extends StatefulWidget {
   State<ExamScreen> createState() => _ExamScreenState();
 }
 
-class _ExamScreenState extends State<ExamScreen> {
+/// What the questions and the passage need from the exam: flags, hints and highlights.
+class _ExamScope extends InheritedWidget {
+  const _ExamScope({required this.flags, required this.onFlag, required this.hints, required this.onHint,
+      required this.highlights, required this.onHighlights, required this.hintShown, required super.child});
+  final Set<String> flags;
+  final void Function(String qid) onFlag;
+  final Object? hints;                                  // null: no hints in this section; '∞' or a number
+  final void Function(String qid) onHint;
+  final Map<String, dynamic> highlights;                // part -> paragraph -> [[start, end]]
+  final void Function(int part, Map<String, List<List<int>>> ranges) onHighlights;
+  final Map<int, Map<String, dynamic>> hintShown;       // part -> {para, quote}
+  static _ExamScope? of(BuildContext c) => c.dependOnInheritedWidgetOfExactType<_ExamScope>();
+  @override
+  bool updateShouldNotify(_ExamScope old) => true;
+}
+
+class _ExamScreenState extends State<ExamScreen> with WidgetsBindingObserver {
+  final Set<String> _flags = {};
+  Map<String, dynamic> _highlights = {};
+  Object? _hints;
+  ListeningPlayer? _player;
+  bool _softPaused = false;                              // Listening paused by the learner (band 6.0 tests and below)
+  bool _away = false;                                    // the app was sent to the background: paused on the server
+  final Map<int, Map<String, dynamic>> _hintShown = {};  // part -> {para, quote}
+  TabController? _tabs;
   Map<String, dynamic>? _st;
   String? _error;
   bool _busy = true;
@@ -45,17 +73,150 @@ class _ExamScreenState extends State<ExamScreen> {
   void initState() {
     super.initState();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    WidgetsBinding.instance.addObserver(this);
     _startSection();
   }
 
   @override
   void dispose() {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    WidgetsBinding.instance.removeObserver(this);
+    final pl = _player;
+    if (pl != null) {
+      if (!pl.finished) Api.I.post('$_base/progress', pl.position()).catchError((_) => <String, dynamic>{});
+      pl.dispose();
+    }
     for (final v in _view.values) { v.dispose(); }
     _clock?.cancel();
     _saveSoon?.cancel();
     if (_dirty) _save();
     super.dispose();
+  }
+
+  // Leaving the app pauses the test, as leaving the page does on the website; coming back goes on.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState s) {
+    if (_st == null || _st!['status'] != 'in_progress' || _submitting) return;
+    if (s == AppLifecycleState.paused || s == AppLifecycleState.hidden) {
+      if (_away) return;
+      _away = true;
+      _clock?.cancel();
+      _player?.pause();
+      if (_dirty) _save();
+      Api.I.post('$_base/pause').catchError((_) => <String, dynamic>{});
+    } else if (s == AppLifecycleState.resumed && _away) {
+      _away = false;
+      if (!_softPaused) _goOn();
+    }
+  }
+
+  Future<void> _goOn() async {
+    try {
+      final r = await Api.I.post('$_base/start');
+      final st = r['state'] as Map<String, dynamic>;
+      if (!mounted) return;
+      if (st['sectionIndex'] != _st?['sectionIndex'] || st['status'] != 'in_progress') { _take(st); return; }
+      _softPaused = false;
+      _left = (st['remainingSeconds'] as num?)?.toInt() ?? _left;
+      _runClock();
+      _player?.start();
+      setState(() {});
+    } on ApiError catch (e) {
+      if (mounted) toast(context, e.message);
+    }
+  }
+
+  Future<void> _togglePause() async {
+    if (!_softPaused) {
+      _clock?.cancel();
+      await _player?.pause();
+      setState(() => _softPaused = true);
+      if (_dirty) await _save();
+      try { await Api.I.post('$_base/pause'); } on ApiError catch (e) { if (mounted) toast(context, e.message); }
+    } else {
+      await _goOn();
+    }
+  }
+
+  bool get _canPause => (((_st?['test'] as Map?)?['level'] as num?) ?? 9) <= 6.0;
+
+  void _runClock() {
+    _clock?.cancel();
+    _clock = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() => _left = _left > 0 ? _left - 1 : 0);
+      if (_left == 0) { _clock?.cancel(); _submit(force: true); }
+    });
+  }
+
+  void _flag(String qid) {
+    setState(() { if (!_flags.remove(qid)) _flags.add(qid); });
+    _dirty = true;
+    _saveSoon?.cancel();
+    _saveSoon = Timer(const Duration(milliseconds: 800), _save);
+  }
+
+  Future<void> _hint(String qid, int part) async {
+    final have = _hints;
+    if (have != '∞' && (have is! num || have <= 0)) {
+      toast(context, tr('No hints left. Get more in the Shop.'));
+      return;
+    }
+    final ok = have == '∞' || await showDialog<bool>(
+          context: context,
+          builder: (c) => AlertDialog(
+            title: Text(tr('Use a hint?')),
+            content: Text('A hint marks the paragraph that has the answer. You have $have left.'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancel'))),
+              TextButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Use a hint'))),
+            ],
+          ),
+        ) == true;
+    if (!ok) return;
+    try {
+      final r = await Api.I.post('$_base/hint', {'question': qid});
+      final h = (r['hint'] as Map).cast<String, dynamic>();
+      setState(() { _hints = h['left']; _hintShown[part] = h; });
+      _viewOf(part).value = 0;                         // show the passage with the paragraph marked
+      if (mounted) toast(context, tr('Look at the marked paragraph.'));
+    } on ApiError catch (e) {
+      if (mounted) toast(context, e.message);
+    }
+  }
+
+  void _saveHighlights(int part, Map<String, List<List<int>>> ranges) {
+    setState(() => _highlights = {..._highlights, '$part': ranges});
+    Api.I.post('$_base/highlights', {'part': part, 'ranges': ranges}).catchError((Object e) {
+      if (mounted && e is ApiError) toast(context, e.message);
+      return <String, dynamic>{};
+    });
+  }
+
+  void _setupPlayer(Map<String, dynamic> st) {
+    _player?.dispose();
+    _player = null;
+    final section = (st['section'] as Map?) ?? {};
+    if (section['key'] != 'listening') return;
+    final parts = (section['parts'] as List? ?? []).cast<Map>();
+    late final ListeningPlayer pl;
+    pl = ListeningPlayer(
+      parts: parts,
+      progress: st['progress'] as Map?,
+      onSave: (p) => Api.I.post('$_base/progress', p).catchError((_) => <String, dynamic>{}),
+      onPartStart: (pi) { final t = _tabs; if (t != null && t.index != pi && pi < t.length) t.animateTo(pi); },
+      onFinished: () async {
+        try {
+          final r = await Api.I.post('$_base/progress', pl.position());
+          final left = (r['remainingSeconds'] as num?)?.toInt();
+          if (left != null && mounted) setState(() => _left = left);
+          final mins = ((section['review_seconds'] as num?) ?? 120) ~/ 60;
+          if (mounted) toast(context, 'The recording has finished. You have $mins minute${mins == 1 ? '' : 's'} to check your answers.');
+        } on ApiError { /* the clock still ends the section */ }
+      },
+      onError: (m) { if (mounted) toast(context, m); },
+    );
+    _player = pl;
   }
 
   Future<void> _startSection() async {
@@ -73,14 +234,22 @@ class _ExamScreenState extends State<ExamScreen> {
     _answers
       ..clear()
       ..addAll(((st['answers'] as Map?) ?? {}).map((k, v) => MapEntry('$k', '$v')));
+    _flags
+      ..clear()
+      ..addAll(((st['flags'] as List?) ?? []).map((e) => '$e'));
+    _highlights = ((st['highlights'] as Map?) ?? {}).cast<String, dynamic>();
+    _hints = st['hints'];
+    _hintShown.clear();
+    _softPaused = false;
     _left = (st['remainingSeconds'] as num?)?.toInt() ?? 0;
     setState(() { _st = st; _busy = false; });
     if (st['status'] == 'in_progress') {
-      _clock = Timer.periodic(const Duration(seconds: 1), (_) {
-        if (!mounted) return;
-        setState(() => _left = _left > 0 ? _left - 1 : 0);
-        if (_left == 0) { _clock?.cancel(); _submit(force: true); }
-      });
+      _setupPlayer(st);
+      _runClock();
+      _player?.start();
+    } else {
+      _player?.dispose();
+      _player = null;
     }
   }
 
@@ -105,7 +274,7 @@ class _ExamScreenState extends State<ExamScreen> {
     }
     final body = {for (final id in ids) id: _answers[id]};
     try {
-      await Api.I.post('$_base/answers', {'answers': body});
+      await Api.I.post('$_base/answers', {'answers': body, 'flags': {for (final id in ids) id: _flags.contains(id)}});
     } on ApiError {
       _dirty = true;                                  // try again with the next change or on submit
     }
@@ -118,16 +287,17 @@ class _ExamScreenState extends State<ExamScreen> {
         context: context,
         builder: (c) => AlertDialog(
           title: Text('Finish ${(_st!['section'] as Map?)?['title'] ?? 'this section'}?'),
-          content: const Text('You cannot come back to this section after you finish it.'),
+          content: Text(tr('You cannot come back to this section after you finish it.')),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Keep going')),
-            TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Finish')),
+            TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Keep going'))),
+            TextButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Finish'))),
           ],
         ),
       );
       if (ok != true) return;
     }
     setState(() => _submitting = true);
+    await _player?.pause();
     _saveSoon?.cancel();
     _dirty = true;
     await _save();
@@ -152,11 +322,11 @@ class _ExamScreenState extends State<ExamScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('Leave the test?'),
-        content: const Text('Your answers are saved. The clock keeps running while you are away.'),
+        title: Text(tr('Leave the test?')),
+        content: Text(tr('Your answers are saved. The clock keeps running while you are away.')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Stay')),
-          TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Leave')),
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Stay'))),
+          TextButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Leave'))),
         ],
       ),
     );
@@ -181,6 +351,7 @@ class _ExamScreenState extends State<ExamScreen> {
                       _NumberChip(
                         label: q['numbers'] is List ? (q['numbers'] as List).join('–') : '${q['number']}',
                         answered: (_answers['${q['id']}'] ?? '').isNotEmpty,
+                        flagged: _flags.contains('${q['id']}'),
                         onTap: () {
                           Navigator.pop(sheet);
                           tabs.animateTo(pi);
@@ -249,29 +420,65 @@ class _ExamScreenState extends State<ExamScreen> {
               ),
               if (key == 'listening' || key == 'reading')
                 Builder(builder: (ctx) => IconButton(
-                  tooltip: 'Questions',
+                  tooltip: tr('Questions'),
                   icon: const Icon(Icons.grid_view_rounded),
                   onPressed: () => _numbers(ctx, parts, key),
                 )),
-              TextButton(onPressed: _submitting ? null : () => _submit(), child: const Text('Finish')),
+              TextButton(onPressed: _submitting ? null : () => _submit(), child: Text(tr('Finish'))),
             ],
             bottom: parts.length > 1
                 ? TabBar(isScrollable: parts.length > 3, tabs: [for (final p in parts) Tab(text: '${p['title']}')])
                 : null,
           ),
-          body: TabBarView(children: [
-            for (var i = 0; i < parts.length; i++)
-              _PartView(
-                key: ValueKey('$key-$idx-$i'),
-                sectionKey: key,
-                part: parts[i].cast<String, dynamic>(),
-                answers: _answers,
-                onAnswer: _answer,
-                attemptBase: _base,
-                keyFor: _key,
-                view: _viewOf(i),
-              ),
-          ]),
+          body: Builder(builder: (ctx) {
+            _tabs = DefaultTabController.of(ctx);
+            final pages = TabBarView(children: [
+              for (var i = 0; i < parts.length; i++)
+                _PartView(
+                  key: ValueKey('$key-$idx-$i'),
+                  sectionKey: key,
+                  partIndex: i,
+                  part: parts[i].cast<String, dynamic>(),
+                  answers: _answers,
+                  onAnswer: _answer,
+                  attemptBase: _base,
+                  keyFor: _key,
+                  view: _viewOf(i),
+                ),
+            ]);
+            return _ExamScope(
+              flags: _flags,
+              onFlag: _flag,
+              hints: _hints,
+              onHint: (qid) => _hint(qid, _tabs?.index ?? 0),
+              highlights: _highlights,
+              onHighlights: _saveHighlights,
+              hintShown: _hintShown,
+              child: Column(children: [
+                if (_player != null)
+                  _AudioPanel(player: _player!, parts: parts, canPause: _canPause, paused: _softPaused, onPause: _togglePause),
+                Expanded(
+                  child: _softPaused
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(32),
+                            child: Column(mainAxisSize: MainAxisSize.min, children: [
+                              const Icon(Icons.pause_circle_rounded, size: 64, color: C.blue),
+                              const SizedBox(height: 12),
+                              Text(tr('Paused'), style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+                              const SizedBox(height: 6),
+                              Text(tr('The recording and the timer have stopped. The questions come back when you go on.'),
+                                  textAlign: TextAlign.center, style: TextStyle(color: Theme.of(context).hintColor)),
+                              const SizedBox(height: 16),
+                              FilledButton.icon(onPressed: _togglePause, icon: const Icon(Icons.play_arrow_rounded), label: Text(tr('Go on'))),
+                            ]),
+                          ),
+                        )
+                      : pages,
+                ),
+              ]),
+            );
+          }),
         ),
       ),
     );
@@ -279,10 +486,11 @@ class _ExamScreenState extends State<ExamScreen> {
 }
 
 class _PartView extends StatefulWidget {
-  const _PartView({super.key, required this.sectionKey, required this.part, required this.answers, required this.onAnswer,
+  const _PartView({super.key, required this.sectionKey, required this.partIndex, required this.part, required this.answers, required this.onAnswer,
       required this.attemptBase, required this.keyFor, required this.view});
   final GlobalKey Function(String) keyFor;
   final String sectionKey;
+  final int partIndex;
   final Map<String, dynamic> part;
   final Map<String, String> answers;
   final void Function(String, String?) onAnswer;
@@ -317,7 +525,7 @@ class _PartViewState extends State<_PartView> with AutomaticKeepAliveClientMixin
     switch (widget.sectionKey) {
       case 'reading':
         return _TwoHalves(view: widget.view, labels: const ['Passage', 'Questions'], icons: const [Icons.article_rounded, Icons.checklist_rounded], halves: [
-          _scroll([_intro(context), if (part['passage'] is Map) _Passage(passage: (part['passage'] as Map).cast<String, dynamic>())]),
+          _scroll([_intro(context), if (part['passage'] is Map) _Passage(part: widget.partIndex, passage: (part['passage'] as Map).cast<String, dynamic>())]),
           _scroll(_questions()),
         ]);
       case 'writing':
@@ -327,11 +535,7 @@ class _PartViewState extends State<_PartView> with AutomaticKeepAliveClientMixin
           _WritingAnswer(task: task, answers: widget.answers, onAnswer: widget.onAnswer),
         ]);
       case 'listening':
-        return Column(children: [
-          if (part['recording'] is Map)
-            Padding(padding: const EdgeInsets.fromLTRB(16, 10, 16, 0), child: _Recording(recording: (part['recording'] as Map).cast<String, dynamic>())),
-          Expanded(child: _scroll([_intro(context), ..._questions()])),
-        ]);
+        return _scroll([_intro(context), ..._questions()]);
       default:
         return _scroll([
           _intro(context),
@@ -366,9 +570,10 @@ class _TwoHalves extends StatelessWidget {
 }
 
 class _NumberChip extends StatelessWidget {
-  const _NumberChip({required this.label, required this.answered, required this.onTap});
+  const _NumberChip({required this.label, required this.answered, required this.onTap, this.flagged = false});
   final String label;
   final bool answered;
+  final bool flagged;
   final VoidCallback onTap;
   @override
   Widget build(BuildContext context) {
@@ -383,7 +588,10 @@ class _NumberChip extends StatelessWidget {
           constraints: const BoxConstraints(minWidth: 44, minHeight: 40),
           alignment: Alignment.center,
           padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Text(label, style: TextStyle(fontWeight: FontWeight.w800, color: answered ? Colors.white : null)),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Text(label, style: TextStyle(fontWeight: FontWeight.w800, color: answered ? Colors.white : null)),
+            if (flagged) Padding(padding: const EdgeInsets.only(left: 3), child: Icon(Icons.flag_rounded, size: 14, color: answered ? Colors.white : C.gold)),
+          ]),
         ),
       ),
     );
@@ -391,109 +599,170 @@ class _NumberChip extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------- Reading passage
+// Select words and press Highlight, as on the website; the marks are saved with the attempt.
 class _Passage extends StatelessWidget {
-  const _Passage({required this.passage});
+  const _Passage({required this.part, required this.passage});
+  final int part;
   final Map<String, dynamic> passage;
+
+  Map<String, List<List<int>>> _ranges(_ExamScope? scope) {
+    final raw = (scope?.highlights['$part'] as Map?) ?? {};
+    return {
+      for (final e in raw.entries)
+        '${e.key}': [for (final r in (e.value as List)) [((r as List)[0] as num).toInt(), (r[1] as num).toInt()]]
+    };
+  }
+
+  static List<List<int>> _merge(List<List<int>> spans) {
+    final list = [...spans]..sort((a, b) => a[0].compareTo(b[0]));
+    final out = <List<int>>[];
+    for (final r in list) {
+      if (out.isNotEmpty && r[0] <= out.last[1]) { out.last[1] = r[1] > out.last[1] ? r[1] : out.last[1]; } else { out.add([r[0], r[1]]); }
+    }
+    return out;
+  }
+
+  static List<List<int>> _cut(List<List<int>> spans, int a, int b) {
+    final out = <List<int>>[];
+    for (final r in spans) {
+      if (r[1] <= a || r[0] >= b) { out.add(r); continue; }
+      if (r[0] < a) out.add([r[0], a]);
+      if (r[1] > b) out.add([b, r[1]]);
+    }
+    return out;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final scope = _ExamScope.of(context);
     final paras = (passage['paragraphs'] as List? ?? []);
+    final ranges = _ranges(scope);
+    final hint = scope?.hintShown[part];
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final mark = dark ? const Color(0xFF8A6D1F) : const Color(0xFFFFE58A);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('${passage['title'] ?? 'Reading passage'}', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
           const SizedBox(height: 12),
-          for (final p in paras)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: SelectableText.rich(TextSpan(children: [
-                if (p is Map && (p['label'] ?? '').toString().isNotEmpty)
-                  TextSpan(text: '${p['label']}  ', style: const TextStyle(fontWeight: FontWeight.w800)),
-                TextSpan(text: p is Map ? '${p['text']}' : '$p'),
-              ]), style: const TextStyle(fontSize: 16, height: 1.55)),
-            ),
+          for (var i = 0; i < paras.length; i++)
+            Builder(builder: (context) {
+              final p = paras[i];
+              final text = p is Map ? '${p['text']}' : '$p';
+              final label = p is Map ? '${p['label'] ?? ''}' : '';
+              final mine = ranges['$i'] ?? const <List<int>>[];
+              final spans = <TextSpan>[];
+              var at = 0;
+              for (final r in _merge(mine)) {
+                final a = r[0].clamp(0, text.length), b = r[1].clamp(0, text.length);
+                if (a > at) spans.add(TextSpan(text: text.substring(at, a)));
+                if (b > a) spans.add(TextSpan(text: text.substring(a, b), style: TextStyle(backgroundColor: mark)));
+                at = b > at ? b : at;
+              }
+              if (at < text.length) spans.add(TextSpan(text: text.substring(at)));
+              final hinted = hint != null && (hint['para'] as num?)?.toInt() == i;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: hinted ? const EdgeInsets.all(8) : EdgeInsets.zero,
+                decoration: hinted
+                    ? BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: C.gold, width: 2), color: C.gold.withValues(alpha: .08))
+                    : null,
+                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  if (label.isNotEmpty) Padding(padding: const EdgeInsets.only(right: 8), child: Text(label, style: const TextStyle(fontSize: 16, height: 1.55, fontWeight: FontWeight.w800))),
+                  Expanded(
+                    child: SelectableText.rich(
+                      TextSpan(children: spans),
+                      style: const TextStyle(fontSize: 16, height: 1.55),
+                      contextMenuBuilder: scope == null
+                          ? null
+                          : (context, state) {
+                              final sel = state.textEditingValue.selection;
+                              final a = sel.start < sel.end ? sel.start : sel.end, b = sel.start < sel.end ? sel.end : sel.start;
+                              final covered = mine.any((r) => r[0] < b && r[1] > a);
+                              void save(List<List<int>> next) {
+                                final all = {...ranges};
+                                if (next.isEmpty) { all.remove('$i'); } else { all['$i'] = next; }
+                                scope.onHighlights(part, all);
+                                state.hideToolbar();
+                              }
+                              return AdaptiveTextSelectionToolbar.buttonItems(
+                                anchors: state.contextMenuAnchors,
+                                buttonItems: [
+                                  if (b > a)
+                                    ContextMenuButtonItem(label: tr('Highlight'), onPressed: () => save(_merge([...mine, [a, b]]))),
+                                  if (b > a && covered)
+                                    ContextMenuButtonItem(label: tr('Remove highlight'), onPressed: () => save(_cut(mine, a, b))),
+                                  ...state.contextMenuButtonItems.where((e) => e.type == ContextMenuButtonType.copy),
+                                ],
+                              );
+                            },
+                    ),
+                  ),
+                ]),
+              );
+            }),
         ]),
       ),
     );
   }
 }
 
-// ---------------------------------------------------------------- Listening audio (played once, like the exam)
-class _Recording extends StatefulWidget {
-  const _Recording({required this.recording});
-  final Map<String, dynamic> recording;
-  @override
-  State<_Recording> createState() => _RecordingState();
-}
-
-class _RecordingState extends State<_Recording> {
-  final _player = AudioPlayer();
-  String _status = 'ready';   // ready, loading, playing, done
-  Duration _pos = Duration.zero, _dur = Duration.zero;
+// ---------------------------------------------------------------- Listening recording panel
+class _AudioPanel extends StatelessWidget {
+  const _AudioPanel({required this.player, required this.parts, required this.canPause, required this.paused, required this.onPause});
+  final ListeningPlayer player;
+  final List<Map> parts;
+  final bool canPause;
+  final bool paused;
+  final VoidCallback onPause;
 
   @override
-  void initState() {
-    super.initState();
-    _player.positionStream.listen((p) { if (mounted) setState(() => _pos = p); });
-    _player.durationStream.listen((d) { if (mounted && d != null) setState(() => _dur = d); });
-  }
-
-  @override
-  void dispose() {
-    _player.dispose();
-    super.dispose();
-  }
-
-  String? _src(dynamic v) => v is Map ? v['src'] as String? : v is String ? v : null;
-
-  Future<void> _play() async {
-    setState(() => _status = 'loading');
-    try {
-      final r = widget.recording;
-      final srcs = [_src(r['intro']), _src(r['src']), _src(r['end'])].whereType<String>().toList();
-      final files = <AudioSource>[];
-      for (final s in srcs) { files.add(AudioSource.file((await Api.I.media(s)).path)); }
-      await _player.setAudioSource(ConcatenatingAudioSource(children: files));
-      setState(() => _status = 'playing');
-      await _player.play();
-      if (mounted) setState(() => _status = 'done');
-    } catch (e) {
-      if (mounted) { setState(() => _status = 'ready'); toast(context, 'Could not play the recording. Check your connection.'); }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final playing = _status == 'playing';
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(children: [
-            IconButton.filled(
-              onPressed: _status == 'ready' ? _play : null,
-              icon: _status == 'loading'
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.4))
-                  : Icon(playing ? Icons.graphic_eq_rounded : _status == 'done' ? Icons.check_rounded : Icons.play_arrow_rounded),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(_status == 'done' ? 'Recording finished' : playing ? 'Listening…' : 'Play the recording (once only)',
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 6),
-                LinearProgressIndicator(
-                  value: _dur.inMilliseconds == 0 ? 0 : (_pos.inMilliseconds / _dur.inMilliseconds).clamp(0, 1),
-                  borderRadius: BorderRadius.circular(4), color: C.blue,
+  Widget build(BuildContext context) => ListenableBuilder(
+        listenable: player,
+        builder: (context, _) {
+          final s = player.status();
+          final title = s.finished || s.part >= parts.length ? '' : '${parts[s.part]['title']}';
+          final String text;
+          if (s.finished) {
+            text = 'The recording has finished. Check your answers.';
+          } else if (paused) {
+            text = 'Paused';
+          } else if (s.kind == 'prep') {
+            text = '$title: read the questions (${(s.remaining ?? 0).ceil()} s)';
+          } else if (s.kind == 'intro' || s.kind == 'end') {
+            text = '$title: the examiner is speaking';
+          } else {
+            text = s.playing ? '$title: listening…' : '$title';
+          }
+          final value = s.finished ? 1.0 : s.kind == 'prep' ? null : (s.fraction ?? 0);
+          return Material(
+            color: C.blue.withValues(alpha: .08),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+              child: Row(children: [
+                Icon(s.finished ? Icons.check_circle_rounded : Icons.headphones_rounded, color: C.blue),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(text, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 5),
+                    LinearProgressIndicator(value: paused ? (s.fraction ?? 0) : value, borderRadius: BorderRadius.circular(4), color: C.blue, minHeight: 4),
+                  ]),
                 ),
+                if (canPause && !s.finished)
+                  IconButton(
+                    tooltip: paused ? tr('Resume') : 'Pause the recording and the timer',
+                    icon: Icon(paused ? Icons.play_arrow_rounded : Icons.pause_rounded),
+                    onPressed: onPause,
+                  )
+                else
+                  const SizedBox(width: 8),
               ]),
             ),
-          ]),
-        ),
-      ),
-    );
-  }
+          );
+        },
+      );
 }
 
 // ---------------------------------------------------------------- Writing
@@ -552,7 +821,7 @@ class _WritingAnswerState extends State<_WritingAnswer> {
             enableSuggestions: false,
             keyboardType: TextInputType.multiline,
             onChanged: (v) { setState(() {}); widget.onAnswer('${widget.task['id']}', v); },
-            decoration: const InputDecoration(hintText: 'Write your answer here'),
+            decoration: InputDecoration(hintText: tr('Write your answer here')),
           ),
         ),
         const SizedBox(height: 6),
@@ -605,7 +874,7 @@ class _SpeakingPromptState extends State<_SpeakingPrompt> {
   Future<void> _go() async {
     final p = widget.prompt;
     if (!await _rec.hasPermission()) {
-      if (mounted) toast(context, 'Allow the microphone to answer the Speaking questions.');
+      if (mounted) toast(context, tr('Allow the microphone to answer the Speaking questions.'));
       return;
     }
     try {
@@ -622,7 +891,7 @@ class _SpeakingPromptState extends State<_SpeakingPrompt> {
       await _countdown('recording', (p['answer_seconds'] as num?)?.toInt() ?? 30);
       await _stopAndSend();
     } catch (_) {
-      if (mounted) { setState(() => _status = 'ready'); toast(context, 'Something went wrong. Please try this question again.'); }
+      if (mounted) { setState(() => _status = 'ready'); toast(context, tr('Something went wrong. Please try this question again.')); }
     }
   }
 
@@ -788,10 +1057,18 @@ class _Question extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text.rich(TextSpan(children: [
-          TextSpan(text: '$number  ', style: const TextStyle(fontWeight: FontWeight.w800, color: C.accent)),
-          TextSpan(text: '${q['text'] ?? ''}'),
-        ]), style: const TextStyle(fontSize: 15.5, height: 1.4)),
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text.rich(TextSpan(children: [
+                TextSpan(text: '$number  ', style: const TextStyle(fontWeight: FontWeight.w800, color: C.accent)),
+                TextSpan(text: '${q['text'] ?? ''}'),
+              ]), style: const TextStyle(fontSize: 15.5, height: 1.4)),
+            ),
+          ),
+          _QuestionTools(qid: id),
+        ]),
         const SizedBox(height: 8),
         if (chips)
           Wrap(spacing: 8, runSpacing: 8, children: [
@@ -822,6 +1099,33 @@ class _Question extends StatelessWidget {
             ),
       ]),
     );
+  }
+}
+
+/// Flag a question to come back to it, and (Reading practice) ask where the answer is.
+class _QuestionTools extends StatelessWidget {
+  const _QuestionTools({required this.qid});
+  final String qid;
+  @override
+  Widget build(BuildContext context) {
+    final scope = _ExamScope.of(context);
+    if (scope == null) return const SizedBox.shrink();
+    final flagged = scope.flags.contains(qid);
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      if (scope.hints != null)
+        IconButton(
+          visualDensity: VisualDensity.compact,
+          tooltip: 'Hint (${scope.hints} left)',
+          icon: const Icon(Icons.lightbulb_outline_rounded, size: 20),
+          onPressed: () => scope.onHint(qid),
+        ),
+      IconButton(
+        visualDensity: VisualDensity.compact,
+        tooltip: flagged ? tr('Remove the flag') : tr('Flag to come back to it'),
+        icon: Icon(flagged ? Icons.flag_rounded : Icons.outlined_flag_rounded, size: 20, color: flagged ? C.gold : Theme.of(context).hintColor),
+        onPressed: () => scope.onFlag(qid),
+      ),
+    ]);
   }
 }
 
@@ -954,60 +1258,8 @@ class _GapChoice extends StatelessWidget {
 class ResultsScreen extends StatelessWidget {
   const ResultsScreen({super.key, required this.attemptId});
   final int attemptId;
-
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Results')),
-      body: Loader<Map<String, dynamic>>(
-        load: () => Api.I.get('/api/app/results/$attemptId'),
-        build: (context, r, reload) {
-          final secs = (r['sections'] as List).cast<Map>();
-          final overall = r['overall'];
-          return ListView(padding: const EdgeInsets.all(16), children: [
-            Text('${r['test']}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 14),
-            if (overall != null)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(children: [
-                    Text('Overall band', style: TextStyle(color: Theme.of(context).hintColor)),
-                    Text('$overall', style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w900, color: C.accent)),
-                  ]),
-                ),
-              ),
-            const SizedBox(height: 8),
-            for (final s in secs)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Card(
-                  child: ListTile(
-                    leading: Icon(sectionIcons[s['key']], color: sectionColors[s['key']]),
-                    title: Text('${s['key']}'[0].toUpperCase() + '${s['key']}'.substring(1)),
-                    subtitle: s['pending'] == true
-                        ? const Text('Being marked: pull down to refresh in a minute')
-                        : s['raw'] != null ? Text('${s['raw']} / ${s['total']} correct') : null,
-                    trailing: Text(s['band'] == null ? '…' : '${s['band']}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
-                  ),
-                ),
-              ),
-            const SizedBox(height: 12),
-            for (var i = 0; i < secs.length; i++)
-              if (secs[i]['key'] == 'listening' || secs[i]['key'] == 'reading')
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.fact_check_rounded, size: 18),
-                    label: Text('Review ${'${secs[i]['key']}'[0].toUpperCase()}${'${secs[i]['key']}'.substring(1)} answers'),
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ReviewScreen(attemptId: attemptId, section: i))),
-                  ),
-                ),
-          ]);
-        },
-      ),
-    );
-  }
+  Widget build(BuildContext context) => ResultsView(attemptId: attemptId);
 }
 
 /// A finished Listening or Reading section: every question with your answer, the right one and why.
@@ -1019,7 +1271,7 @@ class ReviewScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Answers')),
+      appBar: AppBar(title: Text(tr('Answers'))),
       body: Loader<Map<String, dynamic>>(
         load: () async => (await Api.I.get('/api/attempts/$attemptId/review', {'section': section}))['state'] as Map<String, dynamic>,
         build: (context, st, reload) {

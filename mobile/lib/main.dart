@@ -6,6 +6,8 @@ import 'dart:ui' show DartPluginRegistrant;
 
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
+
+import 'i18n.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:workmanager/workmanager.dart';
@@ -27,7 +29,7 @@ import 'widgets.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Future.wait([Api.I.init(), Prefs.I.init(), Notify.I.init()]);
+  await Future.wait([Api.I.init(), Prefs.I.init(), Notify.I.init(), I18n.I.init()]);
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   // news from Mockfy reaches the phone even when the app is closed: Android wakes this check about
   // every 15 minutes (its shortest period) while there is a connection
@@ -59,9 +61,12 @@ final _dark = mockfyTheme(Brightness.dark);
 class MockfyApp extends StatelessWidget {
   const MockfyApp({super.key});
   @override
-  Widget build(BuildContext context) => ValueListenableBuilder<ThemeMode>(
+  Widget build(BuildContext context) => ValueListenableBuilder<String>(
+        valueListenable: I18n.I.lang,
+        builder: (context, lang, _) => ValueListenableBuilder<ThemeMode>(
         valueListenable: Prefs.I.theme,
         builder: (context, mode, _) => MaterialApp(
+          key: ValueKey(lang),
           title: 'Mockfy',
           debugShowCheckedModeBanner: false,
           themeMode: mode,
@@ -85,10 +90,12 @@ class MockfyApp extends StatelessWidget {
                 systemNavigationBarIconBrightness: dark ? Brightness.light : Brightness.dark,
                 systemNavigationBarContrastEnforced: false,
               ),
-              child: child!,
+              // Arabic reads right to left
+              child: Directionality(textDirection: I18n.I.rtl ? TextDirection.rtl : TextDirection.ltr, child: child!),
             );
           },
         ),
+      ),
       );
 }
 
@@ -192,6 +199,8 @@ class _GateState extends State<Gate> {
     try {
       final r = await Api.I.get('/api/app/me');
       setState(() { _me = r['me'] as Map<String, dynamic>; _error = null; });
+      final lang = (r['me'] as Map)['lang'];
+      if (lang is String) I18n.I.set(lang);              // the account's language, as on the website
     } on ApiError catch (e) {
       setState(() { _me = null; _error = e.signedOut || e.status == 403 ? null : e.message; });
     } finally {
@@ -246,7 +255,7 @@ class SignInScreen extends StatelessWidget {
               const SizedBox(height: 24),
               Text('Mockfy', style: Theme.of(context).textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -1)),
               const SizedBox(height: 8),
-              Text('IELTS practice that feels like the real exam.', textAlign: TextAlign.center, style: TextStyle(color: hint, fontSize: 16)),
+              Text(tr('IELTS practice that feels like the real exam.'), textAlign: TextAlign.center, style: TextStyle(color: hint, fontSize: 16)),
               const Spacer(),
               if (error != null) ...[
                 Text(error!, textAlign: TextAlign.center, style: const TextStyle(color: C.red)),
@@ -254,14 +263,14 @@ class SignInScreen extends StatelessWidget {
               ],
               FilledButton.icon(
                 icon: const Icon(Icons.public_rounded),
-                label: const Text('Sign in with your browser'),
+                label: Text(tr('Sign in with your browser')),
                 onPressed: () => launchUrl(Uri.parse('$kBaseUrl/auth/desktop/start'), mode: LaunchMode.externalApplication),
               ),
               const SizedBox(height: 10),
-              Text('Your browser opens. Sign in there with Google or Telegram, and you come straight back to the app.',
+              Text(tr('Your browser opens. Sign in there with Google or Telegram, and you come straight back to the app.'),
                   textAlign: TextAlign.center, style: TextStyle(color: hint, fontSize: 13)),
               const SizedBox(height: 8),
-              TextButton(onPressed: onRetry, child: const Text('I have signed in')),
+              TextButton(onPressed: onRetry, child: Text(tr('I have signed in'))),
             ]),
           ),
         ),
@@ -331,17 +340,17 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
     if (_tab >= pages.length) _tab = 0;
     final destinations = teacher
         ? <NavigationDestination>[
-            const NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard_rounded), label: 'Class'),
-            const NavigationDestination(icon: Icon(Icons.people_alt_outlined), selectedIcon: Icon(Icons.people_alt_rounded), label: 'Students'),
-            const NavigationDestination(icon: Icon(Icons.assignment_outlined), selectedIcon: Icon(Icons.assignment_rounded), label: 'Homework'),
-            NavigationDestination(icon: _MoreIcon(selected: false), selectedIcon: _MoreIcon(selected: true), label: 'Profile'),
+            NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard_rounded), label: tr('Class')),
+            NavigationDestination(icon: Icon(Icons.people_alt_outlined), selectedIcon: Icon(Icons.people_alt_rounded), label: tr('Students')),
+            NavigationDestination(icon: Icon(Icons.assignment_outlined), selectedIcon: Icon(Icons.assignment_rounded), label: tr('Homework')),
+            NavigationDestination(icon: _MoreIcon(selected: false), selectedIcon: _MoreIcon(selected: true), label: tr('Profile')),
           ]
         : <NavigationDestination>[
-            const NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Home'),
-            const NavigationDestination(icon: Icon(Icons.assignment_outlined), selectedIcon: Icon(Icons.assignment_rounded), label: 'Tests'),
-            const NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map_rounded), label: 'Daily'),
-            const NavigationDestination(icon: Icon(Icons.grid_view_outlined), selectedIcon: Icon(Icons.grid_view_rounded), label: 'More'),
-            NavigationDestination(icon: _MoreIcon(selected: false), selectedIcon: _MoreIcon(selected: true), label: 'Profile'),
+            NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: tr('Home')),
+            NavigationDestination(icon: Icon(Icons.assignment_outlined), selectedIcon: Icon(Icons.assignment_rounded), label: tr('Tests')),
+            NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map_rounded), label: tr('Daily')),
+            NavigationDestination(icon: Icon(Icons.grid_view_outlined), selectedIcon: Icon(Icons.grid_view_rounded), label: tr('More')),
+            NavigationDestination(icon: _MoreIcon(selected: false), selectedIcon: _MoreIcon(selected: true), label: tr('Profile')),
           ];
     final body = IndexedStack(key: ValueKey(ws), index: _tab, children: pages);
     // tablets and wide windows: laid out like the desktop app, the menu down the left side with names,

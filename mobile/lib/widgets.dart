@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import 'i18n.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'api.dart';
@@ -57,7 +59,7 @@ class ErrorView extends StatelessWidget {
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            OutlinedButton(onPressed: onRetry, child: const Text('Try again')),
+            OutlinedButton(onPressed: onRetry, child: Text(tr('Try again'))),
           ]),
         ),
       );
@@ -94,7 +96,7 @@ void showProSheet(BuildContext context, {required String who, required bool isMe
           const SizedBox(height: 8),
           Text('Mockfy Pro', style: Theme.of(ctx).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 6),
-          Text(isMe ? 'You have Mockfy Pro. Here is what it gives you:' : '$who has Mockfy Pro. Here is what Pro gives:',
+          Text(isMe ? tr('You have Mockfy Pro. Here is what it gives you:') : '$who has Mockfy Pro. Here is what Pro gives:',
               textAlign: TextAlign.center, style: TextStyle(color: Theme.of(ctx).hintColor)),
           const SizedBox(height: 16),
           Container(
@@ -116,14 +118,14 @@ void showProSheet(BuildContext context, {required String who, required bool isMe
           ),
           const SizedBox(height: 18),
           if (!viewerPro)
-            FilledButton(onPressed: () => openWeb('/pricing'), child: const Text('Get Mockfy Pro'))
+            FilledButton(onPressed: () => openWeb('/pricing'), child: Text(tr('Get Mockfy Pro')))
           else
             FilledButton(
               style: FilledButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.onSurface, foregroundColor: Theme.of(ctx).scaffoldBackgroundColor),
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Close'),
+              child: Text(tr('Close')),
             ),
-          if (!viewerPro) TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Not now')),
+          if (!viewerPro) TextButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('Not now'))),
         ]),
       ),
     ),
@@ -197,5 +199,5 @@ class ShellScope extends InheritedWidget {
 /// The ☰ button for a tab page's top bar: null (nothing shown) unless the menu is a drawer.
 Widget? menuButton(BuildContext context) {
   final open = ShellScope.of(context);
-  return open == null ? null : IconButton(tooltip: 'Menu', icon: const Icon(Icons.menu_rounded), onPressed: open);
+  return open == null ? null : IconButton(tooltip: tr('Menu'), icon: const Icon(Icons.menu_rounded), onPressed: open);
 }

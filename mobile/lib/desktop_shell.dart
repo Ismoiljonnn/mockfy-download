@@ -3,6 +3,8 @@
 // streak, the bell), and the pages opening beside the sidebar. All native, as on the phone.
 import 'package:flutter/material.dart';
 
+import 'i18n.dart';
+
 import 'api.dart';
 import 'notify.dart';
 import 'screens/daily.dart';
@@ -192,7 +194,7 @@ class _DesktopShellState extends State<DesktopShell> {
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
             child: narrow
-                ? IconButton(tooltip: 'Settings', icon: const Icon(Icons.settings_rounded),
+                ? IconButton(tooltip: tr('Settings'), icon: const Icon(Icons.settings_rounded),
                     onPressed: () => _open(SettingsScreen(username: '${_me['username']}', onSignedOut: widget.onSignedOut)))
                 : Row(children: [
                     Expanded(
@@ -205,12 +207,12 @@ class _DesktopShellState extends State<DesktopShell> {
                             Avatar(url: _me['avatar'] as String?, initial: name.isEmpty ? '?' : name[0].toUpperCase(), size: 30),
                             const SizedBox(width: 10),
                             Flexible(child: Text(name, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600))),
-                            Text(' · ${_me['isPro'] == true ? 'Pro' : 'Free'}', style: TextStyle(color: t.hintColor)),
+                            Text(' · ${_me['isPro'] == true ? tr('Pro') : 'Free'}', style: TextStyle(color: t.hintColor)),
                           ]),
                         ),
                       ),
                     ),
-                    IconButton(tooltip: 'Settings', icon: Icon(Icons.settings_outlined, color: t.hintColor),
+                    IconButton(tooltip: tr('Settings'), icon: Icon(Icons.settings_outlined, color: t.hintColor),
                         onPressed: () => _open(SettingsScreen(username: '${_me['username']}', onSignedOut: widget.onSignedOut))),
                   ]),
           ),
@@ -256,7 +258,7 @@ class _DesktopShellState extends State<DesktopShell> {
         ValueListenableBuilder<int>(
           valueListenable: Notify.I.unread,
           builder: (context, n, _) => IconButton(
-            tooltip: 'Notifications',
+            tooltip: tr('Notifications'),
             icon: Badge(isLabelVisible: n > 0, label: Text('$n'), child: Icon(Icons.notifications_none_rounded, color: t.hintColor)),
             onPressed: () => _open(const NotificationsScreen()),
           ),
